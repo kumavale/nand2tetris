@@ -2,6 +2,7 @@ use std::env;
 
 mod parser;
 use parser::*;
+mod code;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

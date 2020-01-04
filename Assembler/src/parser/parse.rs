@@ -1,4 +1,27 @@
+use crate::code;
 use crate::parser::{CommandType, Comp, Dest, Jump};
+
+pub fn parse(tokens: &Vec<String>) -> Vec<String> {
+    let mut binaries: Vec<String> = Vec::new();
+    for token in tokens.iter() {
+        match commandType(&token) {
+            CommandType::A_COMMAND => {
+                let mut binary = String::from("0");
+                //
+                binaries.push(binary);
+            },
+            CommandType::C_COMMAND => {
+                let mut binary = String::from("111");
+                binary += code::comp(comp(&token));
+                binary += code::dest(dest(&token));
+                binary += code::jump(jump(&token));
+                binaries.push(binary);
+            },
+            CommandType::L_COMMAND => (),
+        }
+    }
+    binaries
+}
 
 pub fn tokenize(args: &str) -> Vec<String> {
     use std::fs::File;

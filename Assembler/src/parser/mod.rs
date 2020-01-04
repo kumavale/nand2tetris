@@ -1,5 +1,5 @@
 mod test;
-mod parse;
+pub mod parse;
 use crate::parser::parse::*;
 
 #[derive(Debug)]
@@ -13,27 +13,7 @@ impl Parser {
     }
 
     pub fn parse_all(&self) -> Vec<String> {
-        let mut binaries: Vec<String> = Vec::new();
-
-        for token in self.tokens.iter() {
-            match commandType(&token) {
-                CommandType::A_COMMAND => {
-                    let mut binary = String::from("0");
-                    //
-                    binaries.push(binary);
-                },
-                CommandType::C_COMMAND => {
-                    let mut binary = String::from("111");
-                    // Code::comp(comp(&token))
-                    // Code::dest(dest(&token))
-                    // Code::jump(jump(&token))
-                    binaries.push(binary);
-                },
-                CommandType::L_COMMAND => (),
-            }
-        }
-
-        binaries
+        parse(&self.tokens)
     }
 }
 
