@@ -7,7 +7,11 @@ pub fn parse(tokens: &Vec<String>) -> Vec<String> {
         match commandType(&token) {
             CommandType::A_COMMAND => {
                 let mut binary = String::from("0");
-                //
+                let value = &token[1..];
+                let value = value.parse::<u16>().unwrap();
+                for i in (0..15).rev() {
+                    binary += if value >> i & 1 == 1 { "1" } else { "0" };
+                }
                 binaries.push(binary);
             },
             CommandType::C_COMMAND => {
