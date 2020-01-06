@@ -1,6 +1,7 @@
 mod test;
 use crate::parser::{Comp, Dest, Jump};
 
+/// Returns the binary code of the comp mnemonic. (7bits)
 pub fn comp(op: Comp) -> &'static str {
     match op {
         Comp::Zero    => "0101010",
@@ -34,6 +35,7 @@ pub fn comp(op: Comp) -> &'static str {
     }
 }
 
+/// Returns the binary dest of the comp mnemonic. (3bits)
 pub fn dest(op: Dest) -> &'static str {
     match op {
         Dest::Null => "000",
@@ -47,6 +49,7 @@ pub fn dest(op: Dest) -> &'static str {
     }
 }
 
+/// Returns the binary jump of the comp mnemonic. (3bits)
 pub fn jump(op: Jump) -> &'static str {
     match op {
         Jump::Null => "000",

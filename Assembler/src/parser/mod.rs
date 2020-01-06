@@ -1,6 +1,7 @@
 mod test;
 pub mod parse;
 use crate::parser::parse::*;
+use crate::symbol::SymbolTable;
 
 #[derive(Debug)]
 pub struct Parser {
@@ -12,8 +13,23 @@ impl Parser {
         Parser { tokens: tokenize(&args) }
     }
 
-    pub fn parse_all(&self) -> Vec<String> {
-        parse(&self.tokens)
+    pub fn parse_all(&self, mut table: &mut SymbolTable) -> Vec<String> {
+        parse(&self.tokens, &mut table)
+    }
+
+    pub fn parse_symbol(&mut self) -> SymbolTable {
+        let mut table = SymbolTable::new();
+        let mut address = 0;
+        for token in self.tokens.iter() {
+            match commandType(&token) {
+                CommandType::A_COMMAND |
+                CommandType::C_COMMAND =>
+                    address += 1,
+                CommandType::L_COMMAND =>
+                    table.addEntry(&symbol(&token), address),
+            }
+        }
+        table
     }
 }
 

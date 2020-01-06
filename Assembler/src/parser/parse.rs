@@ -1,17 +1,30 @@
 use crate::code;
 use crate::parser::{CommandType, Comp, Dest, Jump};
+use crate::symbol::SymbolTable;
 
-pub fn parse(tokens: &Vec<String>) -> Vec<String> {
+pub fn parse(tokens: &Vec<String>, table: &mut SymbolTable) -> Vec<String> {
     let mut binaries: Vec<String> = Vec::new();
     for token in tokens.iter() {
         match commandType(&token) {
             CommandType::A_COMMAND => {
                 let mut binary = String::from("0");
-                let value = &token[1..];
-                let value = value.parse::<u16>().unwrap();
+                let value;
+                if let Ok(num) = token[1..].parse::<u16>() {
+                    value = num;
+                } else {
+                    let symbol = symbol(&token);
+                    if let Some(address) = table.getAddress(&symbol) {
+                        value = *address;
+                    } else {
+                        value = table.current();
+                        table.addEntry(&symbol, value);
+                        table.inc_current();
+                    }
+                }
                 for i in (0..15).rev() {
                     binary += if value >> i & 1 == 1 { "1" } else { "0" };
                 }
+                binary += "\n";
                 binaries.push(binary);
             },
             CommandType::C_COMMAND => {
@@ -19,9 +32,10 @@ pub fn parse(tokens: &Vec<String>) -> Vec<String> {
                 binary += code::comp(comp(&token));
                 binary += code::dest(dest(&token));
                 binary += code::jump(jump(&token));
+                binary += "\n";
                 binaries.push(binary);
             },
-            CommandType::L_COMMAND => (),
+            CommandType::L_COMMAND => (), // Do nothing
         }
     }
     binaries
