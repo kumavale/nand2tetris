@@ -8,5 +8,6 @@ fn main() {
     let p = Parser::new();
     let asm = p.parse();
 
+    println!("{:?}", p);
     // Output ("{}.asm", p.filename)
 }

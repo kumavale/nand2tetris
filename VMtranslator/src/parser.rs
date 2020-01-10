@@ -1,10 +1,11 @@
 use crate::code_writer::*;
 
 #[derive(Debug)]
-pub enum CommandType {
-    C_ARITHMETIC,
-    C_PUSH,
-    C_POP,
+#[allow(non_camel_case_types)]
+pub enum CommandType<'a> {
+    C_ARITHMETIC(&'a str),
+    C_PUSH(&'a str, u32),
+    C_POP(&'a str, u32),
     C_LABEL,
     C_GOTO,
     C_IF,
@@ -14,18 +15,18 @@ pub enum CommandType {
 }
 
 #[derive(Debug)]
-pub struct File {
+pub struct File<'a> {
     file_stem: String,
-    tokens: Vec<String>,
+    tokens: Vec<CommandType<'a>>,
 }
 
 #[derive(Debug)]
-pub struct Parser {
+pub struct Parser<'a> {
     filename: String,
-    files: Vec<File>,
+    files: Vec<File<'a>>,
 }
 
-impl Parser {
+impl<'a> Parser<'a> {
 
     /// Opens the input file/stream and gets ready to parse it.
     pub fn new() -> Self {
@@ -41,8 +42,9 @@ impl Parser {
         let filename = get_stem(&input);
         let mut files: Vec<File> = Vec::new();
         for path in arg2paths(&input).into_iter() {
-            let tokens = tokenize(&path);
-            let file = File { file_stem: get_stem(&path), tokens };
+            let file_stem = get_stem(&path);
+            let tokens = tokenize(path);
+            let file = File { file_stem, tokens };
             files.push(file);
         }
 
@@ -55,10 +57,10 @@ impl Parser {
         for file in self.files.iter() {
             let mut tokens = file.tokens.iter();
             while let Some(token) = tokens.next() {
-                match command_type(&token) {
-                    CommandType::C_ARITHMETIC => (),
-                    CommandType::C_POP |
-                    CommandType::C_PUSH => {
+                match token {
+                    CommandType::C_ARITHMETIC(com) => (),
+                    CommandType::C_POP(com, num) => (),
+                    CommandType::C_PUSH(com, num) => {
                         tokens.next();
                         tokens.next();
                     },
@@ -68,24 +70,6 @@ impl Parser {
         }
 
         asm
-    }
-}
-
-/// Returns a constant representing the type of the current command.
-/// C_ARITHMETIC is returned for all the arithmetic/logical commands.
-fn command_type(command: &str) -> CommandType {
-    match command {
-        "add" | "sub" | "neg" | "eq" | "gt" | "lt" | "and" | "or" |
-        "not"      => CommandType::C_ARITHMETIC,
-        "pop"      => CommandType::C_POP,
-        "push"     => CommandType::C_PUSH,
-        "label"    => CommandType::C_LABEL,
-        "goto"     => CommandType::C_GOTO,
-        "if-goto"  => CommandType::C_IF,
-        "function" => CommandType::C_FUNCTION,
-        "call"     => CommandType::C_CALL,
-        "return"   => CommandType::C_RETURN,
-        _ => panic!(format!("command_type(): invalid type: {}", command)),
     }
 }
 
@@ -115,22 +99,71 @@ fn get_stem(path: &str) -> String {
     file_stem[0].to_string()
 }
 
-fn tokenize(path: &str) -> Vec<String> {
+fn tokenize(path: String) -> Vec<CommandType<'static>> {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
     let mut reader = BufReader::new(File::open(&path)
         .expect("Failed file open"));
 
-    let mut tokens: Vec<String> = Vec::new();
+    let mut tokens = Vec::new();
     let mut buf = String::new();
+    // ファイル全読み込み
+    // 改行でsplit
     while reader.read_line(&mut buf).unwrap() > 0 {
-        for token in buf.split_whitespace() {
-            if token.starts_with("//") {  // ignore after "//"
+        let mut commands = buf.split_whitespace();
+        while let Some(command) = commands.next() {
+            if command.starts_with("//") {  // ignore after "//"
                 break;
             }
 
-            tokens.push(token.to_string());
+            let token = match command {
+                "add"      => CommandType::C_ARITHMETIC("add"),
+                "sub"      => CommandType::C_ARITHMETIC("sub"),
+                "neg"      => CommandType::C_ARITHMETIC("neg"),
+                "eq"       => CommandType::C_ARITHMETIC("eq"),
+                "gt"       => CommandType::C_ARITHMETIC("gt"),
+                "lt"       => CommandType::C_ARITHMETIC("lt"),
+                "and"      => CommandType::C_ARITHMETIC("and"),
+                "or"       => CommandType::C_ARITHMETIC("or"),
+                "not"      => CommandType::C_ARITHMETIC("not"),
+                "pop"      => {
+                    let segment = match commands.next().expect("expect segment") {
+                        "local"    => "local",
+                        "argument" => "argument",
+                        "this"     => "this",
+                        "that"     => "that",
+                        "constant" => "constant",
+                        "static"   => "static",
+                        "pointer"  => "pointer",
+                        "temp"     => "temp",
+                        _ => panic!("invalid segment"),
+                    };
+                    CommandType::C_POP(&segment, commands.next().unwrap().parse::<u32>().unwrap())
+                },
+                "push"     => {
+                    let segment = match commands.next().expect("expect segment") {
+                        "local"    => "local",
+                        "argument" => "argument",
+                        "this"     => "this",
+                        "that"     => "that",
+                        "constant" => "constant",
+                        "static"   => "static",
+                        "pointer"  => "pointer",
+                        "temp"     => "temp",
+                        _ => panic!("invalid segment"),
+                    };
+                    CommandType::C_PUSH(&segment, commands.next().unwrap().parse::<u32>().unwrap())
+                },
+                "label"    => CommandType::C_LABEL,
+                "goto"     => CommandType::C_GOTO,
+                "if-goto"  => CommandType::C_IF,
+                "function" => CommandType::C_FUNCTION,
+                "call"     => CommandType::C_CALL,
+                "return"   => CommandType::C_RETURN,
+                _ => panic!(format!("invalid type: {}", command)),
+            };
+            tokens.push(token);
         }
         buf.clear();
     }
@@ -139,7 +172,7 @@ fn tokenize(path: &str) -> Vec<String> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]
