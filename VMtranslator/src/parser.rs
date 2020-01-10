@@ -2,10 +2,10 @@ use crate::code_writer::*;
 
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
-pub enum CommandType<'a> {
-    C_ARITHMETIC(&'a str),
-    C_PUSH(&'a str, u32),
-    C_POP(&'a str, u32),
+pub enum CommandType {
+    C_ARITHMETIC(String),
+    C_PUSH(String, u32),
+    C_POP(String, u32),
     C_LABEL,
     C_GOTO,
     C_IF,
@@ -15,18 +15,18 @@ pub enum CommandType<'a> {
 }
 
 #[derive(Debug)]
-pub struct File<'a> {
+pub struct File {
     file_stem: String,
-    tokens: Vec<CommandType<'a>>,
+    tokens: Vec<CommandType>,
 }
 
 #[derive(Debug)]
-pub struct Parser<'a> {
+pub struct Parser {
     filename: String,
-    files: Vec<File<'a>>,
+    files: Vec<File>,
 }
 
-impl<'a> Parser<'a> {
+impl Parser {
 
     /// Opens the input file/stream and gets ready to parse it.
     pub fn new() -> Self {
@@ -55,21 +55,22 @@ impl<'a> Parser<'a> {
         let mut asm: Vec<String> = Vec::new();
 
         for file in self.files.iter() {
-            let mut tokens = file.tokens.iter();
-            while let Some(token) = tokens.next() {
-                match token {
-                    CommandType::C_ARITHMETIC(com) => (),
-                    CommandType::C_POP(com, num) => (),
-                    CommandType::C_PUSH(com, num) => {
-                        tokens.next();
-                        tokens.next();
-                    },
+            for (line, token) in file.tokens.iter().enumerate() {
+                let result = match token {
+                    CommandType::C_ARITHMETIC(command) => write_arithmetic(command, line),
+                    CommandType::C_POP(segment, index) => write_pop(&segment, *index, line, &file.file_stem),
+                    CommandType::C_PUSH(segment, index) => write_push(&segment, *index, &file.file_stem),
                     _ => panic!("TODO"),
-                }
+                };
+                asm.push(result);
             }
         }
 
         asm
+    }
+
+    pub fn filename(&self) -> &str {
+        &self.filename
     }
 }
 
@@ -99,61 +100,34 @@ fn get_stem(path: &str) -> String {
     file_stem[0].to_string()
 }
 
-fn tokenize(path: String) -> Vec<CommandType<'static>> {
-    use std::fs::File;
-    use std::io::{BufRead, BufReader};
+fn tokenize(path: String) -> Vec<CommandType> {
+    use std::fs::read_to_string;
 
-    let mut reader = BufReader::new(File::open(&path)
-        .expect("Failed file open"));
+    let file_as_str = match read_to_string(&path) {
+        Ok(content) => content,
+        Err(message) => panic!("File at path '{}‘ could not be read: {}", path, message),
+    };
 
     let mut tokens = Vec::new();
-    let mut buf = String::new();
-    // ファイル全読み込み
-    // 改行でsplit
-    while reader.read_line(&mut buf).unwrap() > 0 {
-        let mut commands = buf.split_whitespace();
+    for (i, line) in file_as_str.split('\n').enumerate() {
+        let mut commands = line.split_whitespace();
         while let Some(command) = commands.next() {
             if command.starts_with("//") {  // ignore after "//"
                 break;
             }
 
             let token = match command {
-                "add"      => CommandType::C_ARITHMETIC("add"),
-                "sub"      => CommandType::C_ARITHMETIC("sub"),
-                "neg"      => CommandType::C_ARITHMETIC("neg"),
-                "eq"       => CommandType::C_ARITHMETIC("eq"),
-                "gt"       => CommandType::C_ARITHMETIC("gt"),
-                "lt"       => CommandType::C_ARITHMETIC("lt"),
-                "and"      => CommandType::C_ARITHMETIC("and"),
-                "or"       => CommandType::C_ARITHMETIC("or"),
-                "not"      => CommandType::C_ARITHMETIC("not"),
+                "add" | "sub" | "neg" | "eq"  | "gt"  | "lt"  | "and" | "or"  | "not"
+                    => CommandType::C_ARITHMETIC(command.to_string()),
                 "pop"      => {
-                    let segment = match commands.next().expect("expect segment") {
-                        "local"    => "local",
-                        "argument" => "argument",
-                        "this"     => "this",
-                        "that"     => "that",
-                        "constant" => "constant",
-                        "static"   => "static",
-                        "pointer"  => "pointer",
-                        "temp"     => "temp",
-                        _ => panic!("invalid segment"),
-                    };
-                    CommandType::C_POP(&segment, commands.next().unwrap().parse::<u32>().unwrap())
+                    let segment = commands.next().expect("expect segment").to_string();
+                    CommandType::C_POP(segment, commands.next().unwrap().parse::<u32>()
+                        .expect(&format!("{}:{}: expect u32", path, i+1)))
                 },
                 "push"     => {
-                    let segment = match commands.next().expect("expect segment") {
-                        "local"    => "local",
-                        "argument" => "argument",
-                        "this"     => "this",
-                        "that"     => "that",
-                        "constant" => "constant",
-                        "static"   => "static",
-                        "pointer"  => "pointer",
-                        "temp"     => "temp",
-                        _ => panic!("invalid segment"),
-                    };
-                    CommandType::C_PUSH(&segment, commands.next().unwrap().parse::<u32>().unwrap())
+                    let segment = commands.next().expect("expect segment").to_string();
+                    CommandType::C_PUSH(segment, commands.next().unwrap().parse::<u32>()
+                        .expect(&format!("{}:{}: expect u32", path, i+1)))
                 },
                 "label"    => CommandType::C_LABEL,
                 "goto"     => CommandType::C_GOTO,
@@ -161,11 +135,10 @@ fn tokenize(path: String) -> Vec<CommandType<'static>> {
                 "function" => CommandType::C_FUNCTION,
                 "call"     => CommandType::C_CALL,
                 "return"   => CommandType::C_RETURN,
-                _ => panic!(format!("invalid type: {}", command)),
+                _ => panic!(format!("{}:{}: invalid type: {}", path, i+1, command)),
             };
             tokens.push(token);
         }
-        buf.clear();
     }
 
     tokens
