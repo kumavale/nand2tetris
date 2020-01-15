@@ -1,17 +1,17 @@
 use crate::code_writer::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum CommandType {
     C_ARITHMETIC(String),
     C_PUSH(String, u32),
     C_POP(String, u32),
-    C_LABEL,
-    C_GOTO,
-    C_IF,
-    C_FUNCTION,
+    C_LABEL(String),
+    C_GOTO(String),
+    C_IF(String),
+    C_FUNCTION(String, u32),
     C_RETURN,
-    C_CALL,
+    C_CALL(String, u32),
 }
 
 #[derive(Debug)]
@@ -108,6 +108,10 @@ fn tokenize(path: String) -> Vec<CommandType> {
         Err(message) => panic!("File at path '{}‘ could not be read: {}", path, message),
     };
 
+    tokenize_line(&path, &file_as_str)
+}
+
+fn tokenize_line(path: &str, file_as_str: &str) -> Vec<CommandType> {
     let mut tokens = Vec::new();
     for (i, line) in file_as_str.split('\n').enumerate() {
         let mut commands = line.split_whitespace();
@@ -120,20 +124,39 @@ fn tokenize(path: String) -> Vec<CommandType> {
                 "add" | "sub" | "neg" | "eq"  | "gt"  | "lt"  | "and" | "or"  | "not"
                     => CommandType::C_ARITHMETIC(command.to_string()),
                 "pop"      => {
-                    let segment = commands.next().expect("expect segment").to_string();
-                    CommandType::C_POP(segment, commands.next().unwrap().parse::<u32>()
+                    let segment = commands.next()
+                        .expect(&format!("{}:{}: expect segment", path, i+1)).to_string();
+                    CommandType::C_POP(segment, commands.next()
+                        .expect(&format!("{}:{}: expect u32", path, i+1)).parse::<u32>()
                         .expect(&format!("{}:{}: expect u32", path, i+1)))
                 },
                 "push"     => {
-                    let segment = commands.next().expect("expect segment").to_string();
-                    CommandType::C_PUSH(segment, commands.next().unwrap().parse::<u32>()
+                    let segment = commands.next()
+                        .expect(&format!("{}:{}: expect segment", path, i+1)).to_string();
+                    CommandType::C_PUSH(segment, commands.next()
+                        .expect(&format!("{}:{}: expect u32", path, i+1)).parse::<u32>()
                         .expect(&format!("{}:{}: expect u32", path, i+1)))
                 },
-                "label"    => CommandType::C_LABEL,
-                "goto"     => CommandType::C_GOTO,
-                "if-goto"  => CommandType::C_IF,
-                "function" => CommandType::C_FUNCTION,
-                "call"     => CommandType::C_CALL,
+                "label"    => CommandType::C_LABEL(commands.next()
+                    .expect(&format!("{}:{}: expect label", path, i+1)).to_string()),
+                "goto"     => CommandType::C_GOTO(commands.next()
+                    .expect(&format!("{}:{}: expect label", path, i+1)).to_string()),
+                "if-goto"  => CommandType::C_IF(commands.next()
+                    .expect(&format!("{}:{}: expect label", path, i+1)).to_string()),
+                "function" => {
+                    let func_name = commands.next()
+                        .expect(&format!("{}:{}: expect function name", path, i+1)).to_string();
+                    CommandType::C_FUNCTION(func_name, commands.next()
+                        .expect(&format!("{}:{}: expect u32", path, i+1)).parse::<u32>()
+                        .expect(&format!("{}:{}: expect u32", path, i+1)))
+                },
+                "call"     => {
+                    let func_name = commands.next()
+                        .expect(&format!("{}:{}: expect function name", path, i+1)).to_string();
+                    CommandType::C_CALL(func_name, commands.next()
+                        .expect(&format!("{}:{}: expect u32", path, i+1)).parse::<u32>()
+                        .expect(&format!("{}:{}: expect u32", path, i+1)))
+                },
                 "return"   => CommandType::C_RETURN,
                 _ => panic!(format!("{}:{}: invalid type: {}", path, i+1, command)),
             };
@@ -157,6 +180,44 @@ mod tests {
             actual.push(get_stem(&path));
         }
         assert_eq!(expect, actual);
+    }
+
+    // Test tokenize_line()
+    #[test]
+    fn returns_push_command() {
+        assert_eq!(tokenize_line("", "push local 2"), vec![CommandType::C_PUSH("local".to_string(), 2)]);
+    }
+    #[test]
+    fn returns_pop_command() {
+        assert_eq!(tokenize_line("", "pop static 3"), vec![CommandType::C_POP("static".to_string(), 3)]);
+    }
+    #[test]
+    fn returns_arithmetic_command() {
+        assert_eq!(tokenize_line("", "add"), vec![CommandType::C_ARITHMETIC("add".to_string())]);
+    }
+    #[test]
+    fn returns_label_command() {
+        assert_eq!(tokenize_line("", "label MY_COOL_LABEL"), vec![CommandType::C_LABEL("MY_COOL_LABEL".to_string())]);
+    }
+    #[test]
+    fn returns_if_goto_command() {
+        assert_eq!(tokenize_line("", "if-goto MY_COOL_LABEL"), vec![CommandType::C_IF("MY_COOL_LABEL".to_string())]);
+    }
+    #[test]
+    fn returns_goto_command() {
+        assert_eq!(tokenize_line("", "goto MY_COOL_LABEL"), vec![CommandType::C_GOTO("MY_COOL_LABEL".to_string())]);
+    }
+    #[test]
+    fn returns_function_command() {
+        assert_eq!(tokenize_line("", "function crazy_calc.j 2"), vec![CommandType::C_FUNCTION("crazy_calc.j".to_string(), 2)]);
+    }
+    #[test]
+    fn returns_return_command() {
+        assert_eq!(tokenize_line("", "return"), vec![CommandType::C_RETURN]);
+    }
+    #[test]
+    fn returns_call_command() {
+        assert_eq!(tokenize_line("", "call myFunc.main 4"), vec![CommandType::C_CALL("myFunc.main".to_string(), 4)]);
     }
 }
 
