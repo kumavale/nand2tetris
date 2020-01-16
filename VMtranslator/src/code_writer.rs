@@ -1,4 +1,13 @@
 
+// Bootstrap-Code for (calls Sys.init and sets @SP to 261)
+// (only if a directory is passed as command-line-arg...
+//  ... so more than 1 vm-file has to be translated)
+pub fn write_bootstrap() -> String {
+    let comment = "\n// Set SP to 261 and call Sys.init()".to_string();
+    let asm = "@261 D=A @SP M=D @Sys.init 0;JMP";
+    comment + &asm_new_line_concat(asm)
+}
+
 // ASM-code-generator-functions
 fn sp_down() -> String {
     "@SP AM=M-1".to_string()
@@ -30,7 +39,7 @@ fn add_sub_or_and(method: &str) -> String {
         "sub" => "M=M-D",
         "or" => "M=D|M",
         "and" => "M=D&M",
-        _ => panic!(format!("The unknown method '{}' has been passed into 'add_sub_or_and'.", method)),
+        _ => panic!("The unknown method '{}' has been passed into 'add_sub_or_and'.", method),
     };
     format!("D=M {} {}", sp_down(), command)
 }
@@ -44,7 +53,7 @@ fn eq_gt_lt(method: &str, label_nr: usize) -> String {
         "eq" => "D;JEQ",
         "gt" => "D;JGT",
         "lt" => "D;JLT",
-        _ => panic!(format!("The unknown method '{}' has been passed into 'eq_gt_lt'.", method)),
+        _ => panic!("The unknown method '{}' has been passed into 'eq_gt_lt'.", method),
     };
     format!("{} {} {}", front, middle, tail)
 }
@@ -88,7 +97,7 @@ pub fn write_pop(segment: &str, index: u32, dest_id: usize, file: &str) -> Strin
         let segment_asm = match index {
             0 => format!("{} @SP A=M D=M @THIS M=D", sp_down()),
             1 => format!("{} @SP A=M D=M @THAT M=D", sp_down()),
-            _ => panic!(format!("A index of: '{}' cannot be popped into THIS or THAT", index)),
+            _ => panic!("A index of: '{}' cannot be popped into THIS or THAT", index),
         };
         return comment + &asm_new_line_concat(&segment_asm);
     } else if segment == "static" {
@@ -111,6 +120,84 @@ pub fn write_pop(segment: &str, index: u32, dest_id: usize, file: &str) -> Strin
     let asm_string = format!("{} @{} D=A @{} @dest{} M=D @SP A=M D=M @dest{} A=M M=D", sp_down(), index, segment_asm, dest_id, dest_id);
     comment + &asm_new_line_concat(&asm_string)
 }
+
+pub fn write_label(label: &str) -> String {
+    format!("\n({})", label)
+}
+
+pub fn write_goto(label: &str) -> String {
+    let comment = format!("\n// JMP to LABEL: {}", label);
+    let condition_asm = format!("@{} 0;JMP", label);
+    comment + &asm_new_line_concat(&condition_asm)
+}
+
+pub fn write_ifgoto(label: &str) -> String {
+    let comment = format!("\n// JMP to LABEL: {}", label);
+    let condition_asm = format!("{} D=M @{} D;JNE", sp_down(), label);
+    comment + &asm_new_line_concat(&condition_asm)
+}
+
+pub fn write_function(name: &str, locals: u32) -> String {
+    let comment = format!("\n// Function '{}' with {} local variables", name, locals);
+    let label = format!("({})", name);
+    // Set n-locals to 0
+    let set_locals: String = (0..locals).fold("".to_string(), |zeros, l| format!("{} @{:?} D=A @LCL A=M+D M=0", zeros, l));
+    let set_sp_after_lcl = format!("@{} D=A @SP M=M+D", locals);
+
+    comment
+        + &asm_new_line_concat(&label)
+        + &asm_new_line_concat(&set_locals)
+        + &asm_new_line_concat(&set_sp_after_lcl)
+}
+
+pub fn write_return() -> String {
+    let comment = "\n// RETURN".to_string();
+    // Put last value at position of ARG, move SP right this position after.
+    let restore_sp = format!("{} @SP A=M D=M @ARG A=M M=D @ARG D=M @SP M=D {}", sp_down(), sp_up());
+    // Restore rest of saved frame values.
+    // (By substracting 1-5 from LCL)
+    let store_return_temp = "@5 D=A @LCL A=M-D D=M @R15 M=D".to_string();
+    let restore_that = "@1 D=A @LCL A=M-D D=M @THAT M=D".to_string();
+    let restore_this = "@2 D=A @LCL A=M-D D=M @THIS M=D".to_string();
+    let restore_arg = "@3 D=A @LCL A=M-D D=M @ARG M=D".to_string();
+    let restore_lcl = "@4 D=A @LCL A=M-D D=M @LCL M=D".to_string();
+    let goto_return = "@R15 A=M 0;JMP".to_string();
+
+    comment
+        + &asm_new_line_concat(&store_return_temp)
+        + &asm_new_line_concat(&restore_sp)
+        + &asm_new_line_concat(&restore_that)
+        + &asm_new_line_concat(&restore_this)
+        + &asm_new_line_concat(&restore_arg)
+        + &asm_new_line_concat(&restore_lcl)
+        + &asm_new_line_concat(&goto_return)
+
+}
+
+pub fn write_call(name: &str, args: u32, line: usize) -> String {
+    let comment = format!("\n// Call '{}' with {} args", name, args);
+    // Save callers frame.
+    let push_return_add = format!("@return.{}.{} D=A @SP A=M M=D {}", name, line, sp_up()); // line-nr (return-address)
+    let push_lcl = format!("@LCL D=M @SP A=M M=D {}", sp_up());
+    let push_arg = format!("@ARG D=M @SP A=M M=D {}", sp_up());
+    let push_this = format!("@THIS D=M @SP A=M M=D {}", sp_up());
+    let push_that = format!("@THAT D=M @SP A=M M=D {}", sp_up());
+    let set_lcl = "@SP D=M @LCL M=D".to_string();
+    let set_arg = format!("@5 D=A @{} D=A+D @LCL D=M-D @ARG M=D", args);
+    let call = format!("@{} 0;JMP", name);
+    let return_label = format!("(return.{}.{})", name, line);
+    comment
+    + &asm_new_line_concat(&push_return_add)
+    + &asm_new_line_concat(&push_lcl)
+    + &asm_new_line_concat(&push_arg)
+    + &asm_new_line_concat(&push_this)
+    + &asm_new_line_concat(&push_that)
+    + &asm_new_line_concat(&set_lcl)
+    + &asm_new_line_concat(&set_arg)
+    + &asm_new_line_concat(&call)
+    + &asm_new_line_concat(&return_label)
+}
+
 
 // Helper to split a string (on whitespace) and concat it again with \n .
 fn asm_new_line_concat(asm_string: &str) -> String {
@@ -236,6 +323,42 @@ mod tests {
     #[test]
     fn pop_static_5() {
         assert_eq!(write_pop("static", 5, 0, "bla"), "\n// pop static 5\n@SP\nAM=M-1\n@SP\nA=M\nD=M\n@bla.5\nM=D");
+    }
+
+    // Test goto-command
+    #[test]
+    fn goto_label_works() {
+        assert_eq!(write_goto("LABEL_BAMBI"), "\n// JMP to LABEL: LABEL_BAMBI\n@LABEL_BAMBI\n0;JMP");
+    }
+
+    // Test if-goto-command
+    #[test]
+    fn if_goto_label_works() {
+        assert_eq!(write_ifgoto("LABEL_BAMBI"), "\n// JMP to LABEL: LABEL_BAMBI\n@SP\nAM=M-1\nD=M\n@LABEL_BAMBI\nD;JNE");
+    }
+
+    // Test Label-command
+    #[test]
+    fn label_my_label_works() {
+        assert_eq!(write_label("A_GREAT_LABEL"), "\n(A_GREAT_LABEL)");
+    }
+
+    // Test Function-command
+    #[test]
+    fn write_function_works() {
+        assert_eq!(write_function("cals_some_stuff.0", 3), "\n// Function \'cals_some_stuff.0\' with 3 local variables\n(cals_some_stuff.0)\n\n@0\nD=A\n@LCL\nA=M+D\nM=0\n@1\nD=A\n@LCL\nA=M+D\nM=0\n@2\nD=A\n@LCL\nA=M+D\nM=0\n@3\nD=A\n@SP\nM=M+D");
+    }
+
+    // Test Return-command
+    #[test]
+    fn write_return_works() {
+        assert_eq!(write_return(), "\n// RETURN\n@5\nD=A\n@LCL\nA=M-D\nD=M\n@R15\nM=D\n@SP\nAM=M-1\n@SP\nA=M\nD=M\n@ARG\nA=M\nM=D\n@ARG\nD=M\n@SP\nM=D\n@SP\nM=M+1\n@1\nD=A\n@LCL\nA=M-D\nD=M\n@THAT\nM=D\n@2\nD=A\n@LCL\nA=M-D\nD=M\n@THIS\nM=D\n@3\nD=A\n@LCL\nA=M-D\nD=M\n@ARG\nM=D\n@4\nD=A\n@LCL\nA=M-D\nD=M\n@LCL\nM=D\n@R15\nA=M\n0;JMP");
+    }
+
+    // Test Call-command
+    #[test]
+    fn write_call_works() {
+        assert_eq!(write_call("theGreatFunc", 4, 11), "\n// Call \'theGreatFunc\' with 4 args\n@return.theGreatFunc.11\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@LCL\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@ARG\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@THAT\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@SP\nD=M\n@LCL\nM=D\n@5\nD=A\n@4\nD=A+D\n@LCL\nD=M-D\n@ARG\nM=D\n@theGreatFunc\n0;JMP\n(return.theGreatFunc.11)");
     }
 
     // Helper-functions

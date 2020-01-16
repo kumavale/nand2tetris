@@ -22,6 +22,7 @@ pub struct File {
 
 #[derive(Debug)]
 pub struct Parser {
+    path: String,
     filename: String,
     files: Vec<File>,
 }
@@ -36,9 +37,10 @@ impl Parser {
         let input = if args.len() == 2 {
             &args[1]
         } else {
-            panic!(format!("Usage: {} [Xxx.vm | Directory]", args[0]));
+            panic!("Usage: {} [Xxx.vm | Directory]", args[0]);
         };
 
+        let path = get_path(&input);
         let filename = get_stem(&input);
         let mut files: Vec<File> = Vec::new();
         for path in arg2paths(&input).into_iter() {
@@ -48,11 +50,15 @@ impl Parser {
             files.push(file);
         }
 
-        Parser { filename, files }
+        Parser { path, filename, files }
     }
 
     pub fn parse(&self) -> Vec<String> {
-        let mut asm: Vec<String> = Vec::new();
+        let mut asm: Vec<String> = if 1 < self.files.len() {
+            vec![write_bootstrap()]
+        } else {
+            Vec::new()
+        };
 
         for file in self.files.iter() {
             for (line, token) in file.tokens.iter().enumerate() {
@@ -60,13 +66,22 @@ impl Parser {
                     CommandType::C_ARITHMETIC(command) => write_arithmetic(command, line),
                     CommandType::C_POP(segment, index) => write_pop(&segment, *index, line, &file.file_stem),
                     CommandType::C_PUSH(segment, index) => write_push(&segment, *index, &file.file_stem),
-                    _ => panic!("TODO"),
+                    CommandType::C_LABEL(name) => write_label(name),
+                    CommandType::C_GOTO(label) => write_goto(label),
+                    CommandType::C_IF(label) => write_ifgoto(label),
+                    CommandType::C_FUNCTION(name, locals) => write_function(name, *locals),
+                    CommandType::C_RETURN => write_return(),
+                    CommandType::C_CALL(name, args) => write_call(name, *args, line),
                 };
                 asm.push(result);
             }
         }
 
         asm
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
     }
 
     pub fn filename(&self) -> &str {
@@ -100,6 +115,23 @@ fn get_stem(path: &str) -> String {
     file_stem[0].to_string()
 }
 
+fn get_path(path: &str) -> String {
+    let path = if path.ends_with('/') {
+        path[..path.len()-1].to_string()  // erase '/' of last
+    } else {
+        path.to_string()
+    };
+    let mut path: Vec<&str> = path.split('/').collect();
+    if path.last().unwrap().ends_with(".vm") {
+        let filename = path.pop().unwrap();
+        if path.is_empty() {
+            let filename: Vec<&str> = filename.split('.').collect();
+            return filename[0].to_string()
+        }
+    }
+    path.join("/")
+}
+
 fn tokenize(path: String) -> Vec<CommandType> {
     use std::fs::read_to_string;
 
@@ -125,40 +157,40 @@ fn tokenize_line(path: &str, file_as_str: &str) -> Vec<CommandType> {
                     => CommandType::C_ARITHMETIC(command.to_string()),
                 "pop"      => {
                     let segment = commands.next()
-                        .expect(&format!("{}:{}: expect segment", path, i+1)).to_string();
+                        .unwrap_or_else(|| panic!("{}:{}: expect segment", path, i+1)).to_string();
                     CommandType::C_POP(segment, commands.next()
-                        .expect(&format!("{}:{}: expect u32", path, i+1)).parse::<u32>()
-                        .expect(&format!("{}:{}: expect u32", path, i+1)))
+                        .unwrap_or_else(|| panic!("{}:{}: expect u32", path, i+1)).parse::<u32>()
+                        .unwrap_or_else(|_| panic!("{}:{}: expect u32", path, i+1)))
                 },
                 "push"     => {
                     let segment = commands.next()
-                        .expect(&format!("{}:{}: expect segment", path, i+1)).to_string();
+                        .unwrap_or_else(|| panic!("{}:{}: expect segment", path, i+1)).to_string();
                     CommandType::C_PUSH(segment, commands.next()
-                        .expect(&format!("{}:{}: expect u32", path, i+1)).parse::<u32>()
-                        .expect(&format!("{}:{}: expect u32", path, i+1)))
+                        .unwrap_or_else(|| panic!("{}:{}: expect u32", path, i+1)).parse::<u32>()
+                        .unwrap_or_else(|_| panic!("{}:{}: expect u32", path, i+1)))
                 },
                 "label"    => CommandType::C_LABEL(commands.next()
-                    .expect(&format!("{}:{}: expect label", path, i+1)).to_string()),
+                    .unwrap_or_else(|| panic!("{}:{}: expect label", path, i+1)).to_string()),
                 "goto"     => CommandType::C_GOTO(commands.next()
-                    .expect(&format!("{}:{}: expect label", path, i+1)).to_string()),
+                    .unwrap_or_else(|| panic!("{}:{}: expect label", path, i+1)).to_string()),
                 "if-goto"  => CommandType::C_IF(commands.next()
-                    .expect(&format!("{}:{}: expect label", path, i+1)).to_string()),
+                    .unwrap_or_else(|| panic!("{}:{}: expect label", path, i+1)).to_string()),
                 "function" => {
                     let func_name = commands.next()
-                        .expect(&format!("{}:{}: expect function name", path, i+1)).to_string();
+                        .unwrap_or_else(|| panic!("{}:{}: expect function name", path, i+1)).to_string();
                     CommandType::C_FUNCTION(func_name, commands.next()
-                        .expect(&format!("{}:{}: expect u32", path, i+1)).parse::<u32>()
-                        .expect(&format!("{}:{}: expect u32", path, i+1)))
+                        .unwrap_or_else(|| panic!("{}:{}: expect u32", path, i+1)).parse::<u32>()
+                        .unwrap_or_else(|_| panic!("{}:{}: expect u32", path, i+1)))
                 },
                 "call"     => {
                     let func_name = commands.next()
-                        .expect(&format!("{}:{}: expect function name", path, i+1)).to_string();
+                        .unwrap_or_else(|| panic!("{}:{}: expect function name", path, i+1)).to_string();
                     CommandType::C_CALL(func_name, commands.next()
-                        .expect(&format!("{}:{}: expect u32", path, i+1)).parse::<u32>()
-                        .expect(&format!("{}:{}: expect u32", path, i+1)))
+                        .unwrap_or_else(|| panic!("{}:{}: expect u32", path, i+1)).parse::<u32>()
+                        .unwrap_or_else(|_| panic!("{}:{}: expect u32", path, i+1)))
                 },
                 "return"   => CommandType::C_RETURN,
-                _ => panic!(format!("{}:{}: invalid type: {}", path, i+1, command)),
+                _ => panic!("{}:{}: invalid type: {}", path, i+1, command),
             };
             tokens.push(token);
         }
@@ -173,11 +205,21 @@ mod tests {
 
     #[test]
     fn test_get_stem() {
-        let paths  = vec!["/a/b/c", "/a/b/c/", "./a", "../a", "a", "./a/b.vm"];
-        let expect = vec!["c", "c", "a", "a", "a", "b"];
+        let paths  = vec!["/a/b/c", "/a/b/c/", "./a", "../a", "a", "./a/b.vm", "a.vm"];
+        let expect = vec!["c", "c", "a", "a", "a", "b", "a"];
         let mut actual = vec![];
         for path in paths.iter() {
             actual.push(get_stem(&path));
+        }
+        assert_eq!(expect, actual);
+    }
+    #[test]
+    fn test_get_path() {
+        let paths  = vec!["/a/b/c", "/a/b/c/", "./a", "../a", "a", "./a/b.vm", "a.vm"];
+        let expect = vec!["/a/b/c", "/a/b/c", "./a", "../a", "a", "./a", "a"];
+        let mut actual = vec![];
+        for path in paths.iter() {
+            actual.push(get_path(&path));
         }
         assert_eq!(expect, actual);
     }
