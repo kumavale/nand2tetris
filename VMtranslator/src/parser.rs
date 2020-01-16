@@ -89,21 +89,27 @@ impl Parser {
     }
 }
 
-fn arg2paths(args: &str) -> Vec<String> {
-    let mut files: Vec<String> = Vec::new();
-
-    if let Ok(paths) = std::fs::read_dir(&args) {
+fn read_dir_rec(files: &mut Vec<String>, maybe_dir: &str) {
+    if let Ok(paths) = std::fs::read_dir(&maybe_dir) {
         for path in paths {
             let file = path.unwrap().path().display().to_string();
             if file.ends_with(".vm") {
                 files.push(file);
+            } else {
+                read_dir_rec(files, &file);
             }
         }
-    } else {
-        files.push(args.to_string());
     }
+}
 
-    files
+fn arg2paths(args: &str) -> Vec<String> {
+    if std::fs::read_dir(&args).is_err() {
+        vec![args.to_string()]
+    } else {
+        let mut files: Vec<String> = Vec::new();
+        read_dir_rec(&mut files, &args);
+        files
+    }
 }
 
 fn get_stem(path: &str) -> String {
