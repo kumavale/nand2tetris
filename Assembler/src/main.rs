@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use std::env;
 use std::fs::File;
 use std::io::Write;
