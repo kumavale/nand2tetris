@@ -1,5 +1,5 @@
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum KeywordKind {
     Class,
     Method,
@@ -24,7 +24,7 @@ pub enum KeywordKind {
     This,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SymbolKind {
     LBracket,
     RBracket,
@@ -47,7 +47,7 @@ pub enum SymbolKind {
     Not,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum TokenKind {
     Keyword(KeywordKind),
@@ -74,6 +74,19 @@ impl Token {
 
     pub fn line_no(&self) -> u32 {
         self.line_no
+    }
+
+    pub fn expect_identifier(&self) -> &str {
+        match &self.kind {
+            TokenKind::Identifier(ident) => &ident,
+            _ => panic!("{}: expect Identifier. but got {:?}", self.line_no, self.kind),
+        }
+    }
+
+    pub fn expect_symbol(&self, kind: SymbolKind) {
+        if self.kind != TokenKind::Symbol(kind) {
+            panic!("{}: expect Symbol({:?}). but got {:?}", self.line_no, kind, self.kind);
+        }
     }
 }
 

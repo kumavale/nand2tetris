@@ -155,7 +155,8 @@ fn str2int(ch: char, input_chars: &mut Chars) -> u32 {
     int
 }
 
-pub fn parse_tokens_XML(tokens: &[Token]) -> String {
+#[allow(dead_code)]
+pub fn tokenize_tokens_XML(tokens: &[Token]) -> String {
     let mut xml = String::from("<tokens>\n");
 
     for token in tokens.iter() {

@@ -22,10 +22,9 @@ fn main() {
     };
 
     let tokens = lexer::tokenize(&input);
-    let xml = lexer::parse_tokens_XML(&tokens);
-    println!("{}", xml);  // `cargo run Main.jack > Main.xml`
+    //let xml = lexer::tokenize_tokens_XML(&tokens);
 
-    //let xml = compiler::compile(&tokens);
-    //println!("{:?}", xml);
+    let xml = compiler::compile(&tokens);
+    println!("{}", xml);  // `cargo run Main.jack > Main.xml`
 }
 
