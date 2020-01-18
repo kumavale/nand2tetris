@@ -38,13 +38,12 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             '=' => tokens.push(Token::new(TokenKind::Symbol(SymbolKind::Eq),        line_no)),
             '~' => tokens.push(Token::new(TokenKind::Symbol(SymbolKind::Not),       line_no)),
             '"' => {
-                let input_str = input_chars.as_str();
                 let mut string = String::new();
-                for ch in input_str.chars() {
-                    while ch != '"' {
-                        string.push(ch);
-                        input_chars.next();
+                while let Some(ch) = input_chars.next() {
+                    if ch == '"' {
+                        break;
                     }
+                    string.push(ch);
                 }
                 tokens.push(Token::new(TokenKind::StringConst(string), line_no));
             },
@@ -154,6 +153,85 @@ fn str2int(ch: char, input_chars: &mut Chars) -> u32 {
         }
     }
     int
+}
+
+pub fn parse_tokens_XML(tokens: &[Token]) -> String {
+    let mut xml = String::from("<tokens>\n");
+
+    for token in tokens.iter() {
+        match token.kind() {
+            TokenKind::Keyword(kind) => {
+                xml += "<keyword> ";
+                xml += match kind {
+                    KeywordKind::Class => "class",
+                    KeywordKind::Method => "method",
+                    KeywordKind::Function => "function",
+                    KeywordKind::Constructor => "constructor",
+                    KeywordKind::Int => "int",
+                    KeywordKind::Boolean => "boolean",
+                    KeywordKind::Char => "char",
+                    KeywordKind::Void => "void",
+                    KeywordKind::Var => "var",
+                    KeywordKind::Static => "static",
+                    KeywordKind::Field => "field",
+                    KeywordKind::Let => "let",
+                    KeywordKind::Do => "do",
+                    KeywordKind::If => "if",
+                    KeywordKind::Else => "else",
+                    KeywordKind::While => "while",
+                    KeywordKind::Return => "return",
+                    KeywordKind::True => "true",
+                    KeywordKind::False => "false",
+                    KeywordKind::Null => "null",
+                    KeywordKind::This => "this",
+                };
+                xml += " </keyword>\n";
+            },
+            TokenKind::Symbol(kind) => {
+                xml += "<symbol> ";
+                xml += match kind {
+                    SymbolKind::LBracket =>  "{",
+                    SymbolKind::RBracket =>  "}",
+                    SymbolKind::LParen =>    "(",
+                    SymbolKind::RParen =>    ")",
+                    SymbolKind::LSquare =>   "[",
+                    SymbolKind::RSquare =>   "]",
+                    SymbolKind::Period =>    ".",
+                    SymbolKind::Comma =>     ",",
+                    SymbolKind::Semicolon => ";",
+                    SymbolKind::Plus =>      "+",
+                    SymbolKind::Minus =>     "-",
+                    SymbolKind::Asterisk =>  "*",
+                    SymbolKind::Slash =>     "/",
+                    SymbolKind::And =>       "&amp;",
+                    SymbolKind::Or =>        "|",
+                    SymbolKind::Lt =>        "&lt;",
+                    SymbolKind::Gt =>        "&gt;",
+                    SymbolKind::Eq =>        "=",
+                    SymbolKind::Not =>       "~",
+                };
+                xml += " </symbol>\n";
+            },
+            TokenKind::Identifier(ident) => {
+                xml += "<identifier> ";
+                xml += ident;
+                xml += " </identifier>\n";
+            },
+            TokenKind::IntConst(int) => {
+                xml += "<integerConstant> ";
+                xml += &int.to_string();
+                xml += " </integerConstant>\n";
+            },
+            TokenKind::StringConst(string) => {
+                xml += "<stringConstant> ";
+                xml += string;
+                xml += " </stringConstant>\n";
+            },
+        }
+    }
+
+    xml += "</tokens>";
+    xml
 }
 
 
