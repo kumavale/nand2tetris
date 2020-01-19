@@ -68,12 +68,64 @@ impl Token {
         Token { kind, line_no }
     }
 
-    pub fn kind(&self) -> &TokenKind {
-        &self.kind
+    pub fn kind(&self) -> TokenKind {
+        self.kind.clone()
     }
 
     pub fn line_no(&self) -> u32 {
         self.line_no
+    }
+
+    pub fn expect_op(&self) -> Result<&str, String> {
+        match self.kind {
+            TokenKind::Symbol(kind) => {
+                match kind {
+                    SymbolKind::Plus     => Ok("+"),
+                    SymbolKind::Minus    => Ok("-"),
+                    SymbolKind::Asterisk => Ok("*"),
+                    SymbolKind::Slash    => Ok("/"),
+                    SymbolKind::And      => Ok("&amp;"),
+                    SymbolKind::Or       => Ok("|"),
+                    SymbolKind::Lt       => Ok("&lt;"),
+                    SymbolKind::Gt       => Ok("&gt;"),
+                    SymbolKind::Eq       => Ok("="),
+                    _ => Err(format!("{}: expect op. but got {:?}", self.line_no, kind)),
+                }
+            },
+            _ => Err(format!("{}: expect op. but got {:?}", self.line_no, self.kind)),
+        }
+    }
+
+    pub fn expect_statement(&self) -> Result<KeywordKind, String> {
+        match self.kind {
+            TokenKind::Keyword(kind) => {
+                match kind {
+                    KeywordKind::Let |
+                    KeywordKind::If |
+                    KeywordKind::While |
+                    KeywordKind::Do |
+                    KeywordKind::Return => Ok(kind),
+                    _ => Err(format!("{}: expect statement. but got {:?}", self.line_no, kind)),
+                }
+            },
+            _ => Err(format!("{}: expect statement. but got {:?}", self.line_no, self.kind)),
+        }
+    }
+
+    pub fn expect_type(&self) -> Result<&str, String> {
+        match &self.kind {
+            TokenKind::Keyword(kind) => {
+                match kind {
+                    KeywordKind::Int     => Ok("int"),
+                    KeywordKind::Boolean => Ok("boolean"),
+                    KeywordKind::Char    => Ok("char"),
+                    KeywordKind::Void    => Ok("void"),
+                    _ => Err(format!("{}: expect type. but got {:?}", self.line_no, kind)),
+                }
+            },
+            TokenKind::Identifier(ident) => Ok(&ident),
+            _ => Err(format!("{}: expect type. but got {:?}", self.line_no, self.kind)),
+        }
     }
 
     pub fn expect_keyword(&self) -> Result<&str, String> {
@@ -159,31 +211,31 @@ mod tests {
     #[test]
     fn get_kind_Keyword() {
         let token = Token { kind: TokenKind::Keyword(KeywordKind::Null), line_no: 0 };
-        assert_eq!(token.kind(), &TokenKind::Keyword(KeywordKind::Null));
+        assert_eq!(token.kind(), TokenKind::Keyword(KeywordKind::Null));
     }
 
     #[test]
     fn get_kind_Symbol() {
         let token = Token { kind: TokenKind::Symbol(SymbolKind::Not), line_no: 0 };
-        assert_eq!(token.kind(), &TokenKind::Symbol(SymbolKind::Not));
+        assert_eq!(token.kind(), TokenKind::Symbol(SymbolKind::Not));
     }
 
     #[test]
     fn get_kind_Identifier() {
         let token = Token { kind: TokenKind::Identifier("test".to_string()), line_no: 0 };
-        assert_eq!(token.kind(), &TokenKind::Identifier("test".to_string()));
+        assert_eq!(token.kind(), TokenKind::Identifier("test".to_string()));
     }
 
     #[test]
     fn get_kind_IntConst() {
         let token = Token { kind: TokenKind::IntConst(42), line_no: 0 };
-        assert_eq!(token.kind(), &TokenKind::IntConst(42));
+        assert_eq!(token.kind(), TokenKind::IntConst(42));
     }
 
     #[test]
     fn get_kind_StringConst() {
         let token = Token { kind: TokenKind::StringConst("test".to_string()), line_no: 0 };
-        assert_eq!(token.kind(), &TokenKind::StringConst("test".to_string()));
+        assert_eq!(token.kind(), TokenKind::StringConst("test".to_string()));
     }
 
     #[test]

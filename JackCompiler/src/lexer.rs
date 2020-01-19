@@ -215,7 +215,7 @@ pub fn tokenize_tokens_XML(tokens: &mut Tokens) -> String {
             },
             TokenKind::Identifier(ident) => {
                 xml += "<identifier> ";
-                xml += ident;
+                xml += &ident;
                 xml += " </identifier>\n";
             },
             TokenKind::IntConst(int) => {
@@ -225,7 +225,7 @@ pub fn tokenize_tokens_XML(tokens: &mut Tokens) -> String {
             },
             TokenKind::StringConst(string) => {
                 xml += "<stringConstant> ";
-                xml += string;
+                xml += &string;
                 xml += " </stringConstant>\n";
             },
         }
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn keywords() {
         let input = "class method function constructor int boolean char void var static field let do if else while return true false null this";
-        let expect = vec![
+        let expect = Tokens::new(vec![
             Token::new(TokenKind::Keyword(KeywordKind::Class),       1),
             Token::new(TokenKind::Keyword(KeywordKind::Method),      1),
             Token::new(TokenKind::Keyword(KeywordKind::Function),    1),
@@ -286,18 +286,18 @@ mod tests {
             Token::new(TokenKind::Keyword(KeywordKind::False),       1),
             Token::new(TokenKind::Keyword(KeywordKind::Null),        1),
             Token::new(TokenKind::Keyword(KeywordKind::This),        1),
-        ];
+        ]);
         assert_eq!(tokenize(&input), expect);
     }
 
     #[test]
     fn Identifiers() {
         let input = "main INT Abc_123";
-        let expect = vec![
+        let expect = Tokens::new(vec![
             Token::new(TokenKind::Identifier("main".to_string()),    1),
             Token::new(TokenKind::Identifier("INT".to_string()),     1),
             Token::new(TokenKind::Identifier("Abc_123".to_string()), 1),
-        ];
+        ]);
         assert_eq!(tokenize(&input), expect);
     }
 
@@ -306,10 +306,10 @@ mod tests {
         let com1 = "123 // comment\n    456";
         let com2 = "123 /* comment */\n 456";
         let com3 = "123 /** API */\n    456";
-        let expect = vec![
+        let expect = Tokens::new(vec![
             Token::new(TokenKind::IntConst(123), 1),
             Token::new(TokenKind::IntConst(456), 2),
-        ];
+        ]);
         assert_eq!(tokenize(&com1), expect);
         assert_eq!(tokenize(&com2), expect);
         assert_eq!(tokenize(&com3), expect);
