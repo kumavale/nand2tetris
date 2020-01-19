@@ -57,7 +57,7 @@ pub enum TokenKind {
     StringConst(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     kind: TokenKind,
     line_no: u32,
@@ -76,19 +76,81 @@ impl Token {
         self.line_no
     }
 
-    pub fn expect_identifier(&self) -> &str {
+    pub fn expect_keyword(&self) -> Result<&str, String> {
         match &self.kind {
-            TokenKind::Identifier(ident) => &ident,
-            _ => panic!("{}: expect Identifier. but got {:?}", self.line_no, self.kind),
+            TokenKind::Keyword(kind) => {
+                match kind {
+                    KeywordKind::Class       => Ok("class"),
+                    KeywordKind::Method      => Ok("method"),
+                    KeywordKind::Function    => Ok("function"),
+                    KeywordKind::Constructor => Ok("constructor"),
+                    KeywordKind::Int         => Ok("int"),
+                    KeywordKind::Boolean     => Ok("boolean"),
+                    KeywordKind::Char        => Ok("char"),
+                    KeywordKind::Void        => Ok("void"),
+                    KeywordKind::Var         => Ok("var"),
+                    KeywordKind::Static      => Ok("static"),
+                    KeywordKind::Field       => Ok("field"),
+                    KeywordKind::Let         => Ok("let"),
+                    KeywordKind::Do          => Ok("do"),
+                    KeywordKind::If          => Ok("if"),
+                    KeywordKind::Else        => Ok("else"),
+                    KeywordKind::While       => Ok("while"),
+                    KeywordKind::Return      => Ok("return"),
+                    KeywordKind::True        => Ok("true"),
+                    KeywordKind::False       => Ok("false"),
+                    KeywordKind::Null        => Ok("null"),
+                    KeywordKind::This        => Ok("this"),
+                }
+            },
+            _ => Err(format!("{}: expect keyword. but got {:?}", self.line_no, self.kind)),
         }
     }
 
-    pub fn expect_symbol(&self, kind: SymbolKind) {
-        if self.kind != TokenKind::Symbol(kind) {
-            panic!("{}: expect Symbol({:?}). but got {:?}", self.line_no, kind, self.kind);
+    pub fn expect_identifier(&self) -> Result<&str, String> {
+        match &self.kind {
+            TokenKind::Identifier(ident) => Ok(&ident),
+            _ => Err(format!("{}: expect Identifier. but got {:?}", self.line_no, self.kind)),
+        }
+    }
+
+    pub fn expect_symbol(&self, kind: SymbolKind) -> Result<(), String> {
+        if self.kind == TokenKind::Symbol(kind) {
+            Ok(())
+        } else {
+            Err(format!("{}: expect Symbol({:?}). but got {:?}", self.line_no, kind, self.kind))
         }
     }
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Tokens {
+    tokens: Vec<Token>,
+    cur: usize,
+    len: usize,
+}
+
+impl Tokens {
+    pub fn new(tokens: Vec<Token>) -> Self {
+        let len = tokens.len();
+        Tokens { tokens, cur: 0, len }
+    }
+
+    pub fn consume(&mut self) -> Option<&Token> {
+        if self.cur < self.len {
+            let token = &self.tokens[self.cur];
+            self.cur += 1;
+            Some(token)
+        } else {
+            None
+        }
+    }
+
+    pub fn next(&self) -> Option<Token> {
+        Some(self.tokens[self.cur].clone())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

@@ -2,7 +2,7 @@
 use std::str::Chars;
 use super::token::*;
 
-pub fn tokenize(input: &str) -> Vec<Token> {
+pub fn tokenize(input: &str) -> Tokens {
     let mut tokens = Vec::new();
     let mut line_no = 1;
     let mut input_chars = input.chars();
@@ -68,7 +68,7 @@ pub fn tokenize(input: &str) -> Vec<Token> {
         }
     }
 
-    tokens
+    Tokens::new(tokens)
 }
 
 fn until_ignore(input_chars: &mut Chars, last: &str) {
@@ -156,10 +156,10 @@ fn str2int(ch: char, input_chars: &mut Chars) -> u32 {
 }
 
 #[allow(dead_code)]
-pub fn tokenize_tokens_XML(tokens: &[Token]) -> String {
+pub fn tokenize_tokens_XML(tokens: &mut Tokens) -> String {
     let mut xml = String::from("<tokens>\n");
 
-    for token in tokens.iter() {
+    while let Some(token) = tokens.consume() {
         match token.kind() {
             TokenKind::Keyword(kind) => {
                 xml += "<keyword> ";

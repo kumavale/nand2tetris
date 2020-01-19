@@ -21,10 +21,9 @@ fn main() {
         Err(message) => panic!("File at path '{}‘ could not be read: {}", path, message),
     };
 
-    let tokens = lexer::tokenize(&input);
-    //let xml = lexer::tokenize_tokens_XML(&tokens);
-
-    let xml = compiler::compile(&tokens);
+    let mut tokens = lexer::tokenize(&input);
+    //let xml = lexer::tokenize_tokens_XML(&mut tokens);
+    let xml = compiler::compile(&mut tokens);
     println!("{}", xml);  // `cargo run Main.jack > Main.xml`
 }
 
