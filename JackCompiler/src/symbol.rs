@@ -1,4 +1,5 @@
 
+#[derive(Clone, Debug)]
 pub enum VarType {
     Int,
     Char,
@@ -7,6 +8,7 @@ pub enum VarType {
     Void,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum Kind {
     Field,
     Static,
@@ -14,6 +16,7 @@ pub enum Kind {
     Argument,
 }
 
+#[derive(Clone, Debug)]
 pub struct Table {
     name: String,
     vtype: VarType,
@@ -27,12 +30,16 @@ impl Table {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct SymbolTable {
     tables: Vec<Vec<Table>>,
+
     field_counter:    usize,
     static_counter:   usize,
     local_counter:    usize,
     argument_counter: usize,
+
+    class_name: String,
 }
 
 impl SymbolTable {
@@ -43,6 +50,7 @@ impl SymbolTable {
             static_counter:   0,
             local_counter:    0,
             argument_counter: 0,
+            class_name: String::new(),
         }
     }
 
@@ -54,8 +62,17 @@ impl SymbolTable {
         self.tables.pop();
     }
 
-    pub fn define(&mut self, name: &str, vtype: VarType, kind: Kind) {
+    /// Defines a new identifier of the given name, type, and kind,
+    /// and assigns it a running index.
+    pub fn define(&mut self, name: &str, vtype: &str, kind: Kind) {
         if let Some(table) = self.tables.last_mut() {
+            let vtype = match vtype {
+                "int"     => VarType::Int,
+                "char"    => VarType::Char,
+                "boolean" => VarType::Boolean,
+                "void"    => VarType::Void,
+                _         => VarType::ClassName(vtype.to_string()),
+            };
             match kind {
                 Kind::Field => {
                     table.push(Table::new(name, vtype, kind, self.field_counter));
@@ -74,7 +91,52 @@ impl SymbolTable {
                     self.argument_counter += 1;
                 },
             }
+        } else {
+            panic!("define() failed");
         }
+    }
+
+    /// Returns the kind of the named identifier in the current scope.
+    /// If the identifier is unknown in the current scope, returns None.
+    pub fn kind_of(&self, name: &str) -> Option<Kind> {
+        for table in self.tables.iter().rev() {
+            for t in table.iter() {
+                if t.name == name {
+                    return Some(t.kind);
+                }
+            }
+        }
+        None
+    }
+
+    /// Returns the type of the named identifier in the current scope.
+    /// If the identifier is unknown in the current scope, returns None.
+    pub fn type_of(&self, name: &str) -> Option<VarType> {
+        for table in self.tables.iter().rev() {
+            for t in table.iter() {
+                if t.name == name {
+                    return Some(t.vtype.clone());
+                }
+            }
+        }
+        None
+    }
+
+    /// Returns the index assigned to the named identifier.
+    /// If the identifier is unknown in the current scope, returns None.
+    pub fn index_of(&self, name: &str) -> Option<usize> {
+        for table in self.tables.iter().rev() {
+            for t in table.iter() {
+                if t.name == name {
+                    return Some(t.index);
+                }
+            }
+        }
+        None
+    }
+
+    pub fn set_class_name(&mut self, class_name: &str) {
+        self.class_name = class_name.to_string();
     }
 }
 
