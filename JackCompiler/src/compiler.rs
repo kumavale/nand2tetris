@@ -45,8 +45,7 @@ pub fn compile(tokens: &mut Tokens) -> String {
     let mut st = SymbolTable::new();
 //println!("{:?}", tokens); std::process::exit(0);
     compile_class(&mut output, tokens, &mut st);
-    println!("{:?}", st);
-    std::process::exit(0);
+println!("{:?}", st); std::process::exit(0);
     output
 }
 
