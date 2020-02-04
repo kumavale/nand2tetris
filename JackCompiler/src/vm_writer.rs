@@ -54,16 +54,36 @@ pub fn write_if(label: &str) -> String {
 
 /// Write a VM call command.
 pub fn write_call(name: &str, nArgs: usize) -> String {
-    String::new()
+    format!("call {} {}\n", name, nArgs)
 }
 
 /// Write a VM function command.
 pub fn write_function(name: &str, nLocals: usize) -> String {
-    String::new()
+    format!("function {} {}\n", name, nLocals)
 }
 
 /// Write a VM return command.
 pub fn write_return() -> String {
-    String::new()
+    "return\n".to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn function() {
+        assert_eq!(write_function("Main.main", 0), String::from("function Main.main 0\n"));
+    }
+
+    #[test]
+    fn call() {
+        assert_eq!(write_call("Output.printInt", 2), String::from("call Output.printInt 2\n"));
+    }
+
+    #[test]
+    fn r#return() {
+        assert_eq!(write_return(), String::from("return\n"));
+    }
 }
 

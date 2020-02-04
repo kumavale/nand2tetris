@@ -1,5 +1,5 @@
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum VarType {
     Int,
     Char,
@@ -8,7 +8,7 @@ pub enum VarType {
     Void,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Kind {
     Field,
     Static,
@@ -16,12 +16,12 @@ pub enum Kind {
     Argument,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Table {
-    name: String,
-    vtype: VarType,
-    kind: Kind,
-    index: usize,
+    pub name: String,
+    pub vtype: VarType,
+    pub kind: Kind,
+    pub index: usize,
 }
 
 impl Table {
@@ -30,16 +30,16 @@ impl Table {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SymbolTable {
-    tables: Vec<Vec<Table>>,
+    pub tables: Vec<Vec<Table>>,
 
-    field_counter:    usize,
-    static_counter:   usize,
-    local_counter:    usize,
-    argument_counter: usize,
+    pub field_counter:    usize,
+    pub static_counter:   usize,
+    pub local_counter:    usize,
+    pub argument_counter: usize,
 
-    class_name: String,
+    pub class_name: String,
 }
 
 impl SymbolTable {
@@ -96,6 +96,19 @@ impl SymbolTable {
         }
     }
 
+    /// Returns the number of variables of the given kind already defined in the current scope.
+    pub fn var_count(&self, kind: Kind) -> usize {
+        let mut count = 0;
+        for table in self.tables.iter().rev() {
+            for t in table.iter() {
+                if t.kind == kind {
+                    count += 1;
+                }
+            }
+        }
+        count
+    }
+
     /// Returns the kind of the named identifier in the current scope.
     /// If the identifier is unknown in the current scope, returns None.
     pub fn kind_of(&self, name: &str) -> Option<Kind> {
@@ -134,9 +147,34 @@ impl SymbolTable {
         }
         None
     }
+}
 
-    pub fn set_class_name(&mut self, class_name: &str) {
-        self.class_name = class_name.to_string();
+#[cfg(test)]
+mod tests {
+use super::*;
+
+    #[test]
+    fn scope_io() {
+        let mut st = SymbolTable::new();
+        assert!(st.tables.len() == 0);
+        st.scope_in();
+        assert!(st.tables.len() == 1);
+        st.scope_out();
+        assert!(st.tables.len() == 0);
+    }
+
+    #[test]
+    fn define() {
+        let mut st = SymbolTable::new();
+        st.scope_in();
+        let varName = "x";
+        let varType = "int";
+        let kind = Kind::Local;
+        st.define(varName, varType, kind);
+        assert_eq!(st.kind_of("x"), Some(Kind::Local));
+        assert_eq!(st.type_of("x"), Some(VarType::Int));
+        assert_eq!(st.index_of("x"), Some(0));
+        st.scope_out();
     }
 }
 
