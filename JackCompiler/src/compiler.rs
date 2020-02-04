@@ -39,7 +39,6 @@
 
 use super::token::*;
 use super::symbol::*;
-use super::vm_writer::*;
 
 pub fn compile(tokens: &mut Tokens) -> String {
     let mut output = String::new();
@@ -99,8 +98,7 @@ fn compile_subroutine_dec(output: &mut String, tokens: &mut Tokens, st: &mut Sym
                 tokens.consume();
                 let varType = tokens.consume().unwrap().expect_type().unwrap();
                 let subroutineName = tokens.consume().unwrap().expect_identifier().unwrap();
-                *output += &write_function(&format!("{}.{}", st.class_name, subroutineName), st.var_count(Kind::Local));
-    //format!("function {} {}\n", name, nLocals)
+                *output += &format!("function {}.{} {}\n", st.class_name, subroutineName, st.var_count(Kind::Local));
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
                 compile_parameter_list(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
@@ -303,7 +301,7 @@ fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
                 tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
                 let nArgs = compile_expression_list(output, tokens, st);
-                *output += &write_call(&format!("{}.{}", ident, subroutineName), nArgs);
+                *output += &format!("call {}.{} {}\n", ident, subroutineName, nArgs);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
             }
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
@@ -319,9 +317,11 @@ fn compile_return(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable
             // (expression)?
             if tokens.next().unwrap().expect_symbol(SymbolKind::Semicolon).is_err() {
                 compile_expression(output, tokens, st);
+            } else {
+                *output += "push constant 0\n";  // void
             }
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
-            *output += &write_return();
+            *output += "return\n";
         },
         Err(e) => panic!(e)
     }
@@ -330,11 +330,15 @@ fn compile_return(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable
 // Compiles an expression.
 fn compile_expression(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     // TODO AST
-    wirite_push(compile_term(output, tokens, st));
+    let mut ops = Vec::new();
+    compile_term(output, tokens, st);
     while let Ok(op) = tokens.next().unwrap().expect_op() {
         tokens.consume();
-        *output += &format!("<symbol> {} </symbol>\n", op);
+        ops.push(op.to_string());
         compile_term(output, tokens, st);
+    }
+    for op in ops.iter() {
+        *output += &format!("{}\n", op);
     }
 }
 
@@ -344,12 +348,12 @@ fn compile_expression(output: &mut String, tokens: &mut Tokens, st: &mut SymbolT
 // A single look-ahead token, which may be one of "[","(", or "."
 // suffices to distinguish between the possibilities.
 // Any other token is not part of this term and should not be advanced over.
-fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) -> String {
+fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     // TODO
     let token = tokens.consume().unwrap();
     match token.kind() {
-        TokenKind::IntConst(int) => format!("constant {}", int),
-        TokenKind::StringConst(string) => string.to_string(),
+        TokenKind::IntConst(int) => *output += &format!("push constant {}\n", int),
+        TokenKind::StringConst(string) => *output += &string, //TODO String.new
         TokenKind::Keyword(keyword) => {
             match keyword {
                 // keywordConstant
@@ -393,19 +397,17 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
             match symbol {
                 // '(' expression ')'
                 SymbolKind::LParen => {
-                    *output += &format!("<symbol> {} </symbol>\n", "(");
                     compile_expression(output, tokens, st);
                     tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
-                    *output += &format!("<symbol> {} </symbol>\n", ")");
                 },
                 // unaryOp term
                 SymbolKind::Minus => {
-                    //push compile_term(output, tokens, st);
+                    compile_term(output, tokens, st);
                     *output += "neg";
                 },
                 SymbolKind::Not => {
-                    *output += &format!("<symbol> {} </symbol>\n", "~");
                     compile_term(output, tokens, st);
+                    *output += "not";
                 },
                 _ => panic!("{}: unexpect symbol: {:?}", token.line_no(), symbol),
             }

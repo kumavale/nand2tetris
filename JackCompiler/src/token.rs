@@ -80,15 +80,15 @@ impl Token {
         match self.kind {
             TokenKind::Symbol(kind) => {
                 match kind {
-                    SymbolKind::Plus     => Ok("+"),
-                    SymbolKind::Minus    => Ok("-"),
-                    SymbolKind::Asterisk => Ok("*"),
-                    SymbolKind::Slash    => Ok("/"),
-                    SymbolKind::And      => Ok("&amp;"),
-                    SymbolKind::Or       => Ok("|"),
-                    SymbolKind::Lt       => Ok("&lt;"),
-                    SymbolKind::Gt       => Ok("&gt;"),
-                    SymbolKind::Eq       => Ok("="),
+                    SymbolKind::Plus     => Ok("add"),
+                    SymbolKind::Minus    => Ok("sub"),
+                    SymbolKind::Asterisk => Ok("call Math.multiply 2"),
+                    SymbolKind::Slash    => Ok("call Math.divide 2"),
+                    SymbolKind::And      => Ok("and"),
+                    SymbolKind::Or       => Ok("or"),
+                    SymbolKind::Lt       => Ok("lt"),
+                    SymbolKind::Gt       => Ok("gt"),
+                    SymbolKind::Eq       => Ok("eq"),
                     _ => Err(format!("{}: expect op. but got {:?}", self.line_no, kind)),
                 }
             },
