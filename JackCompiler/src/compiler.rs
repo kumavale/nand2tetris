@@ -219,20 +219,24 @@ fn compile_let(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     // TODO
     match tokens.consume().unwrap().expect_keyword() {
         Ok(_) => {  // determinate "let"
-            let varName = tokens.consume().unwrap().expect_identifier().unwrap();
-            let assign = format!("pop {} {}\n", st.kind_of(&varName).unwrap(), st.index_of(&varName).unwrap());
-            if tokens.next().unwrap().expect_symbol(SymbolKind::LSquare).is_ok() {
-                // TODO Array
+            let token = tokens.next().unwrap();
+            let varName = token.expect_identifier().unwrap();
+            tokens.consume();
+            let ret = if tokens.next().unwrap().expect_symbol(SymbolKind::LSquare).is_ok() {
+                // Array
                 tokens.consume();
-                *output += &format!("<symbol> {} </symbol>\n", "[");
                 compile_expression(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RSquare).unwrap();
-                *output += &format!("<symbol> {} </symbol>\n", "]");
-            }
+                *output += &format!("push {} {}\n", st.kind_of(&varName).unwrap(), st.index_of(&varName).unwrap());
+                *output += "add\n";
+                "pop temp 0\npop pointer 1\npush temp 0\npop that 0\n".to_string()
+            } else {
+                format!("pop {} {}\n", st.kind_of(&varName).unwrap(), st.index_of(&varName).unwrap())
+            };
             tokens.consume().unwrap().expect_symbol(SymbolKind::Eq).unwrap();
             compile_expression(output, tokens, st);
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
-            *output += &assign;
+            *output += &ret;
         },
         Err(e) => panic!(e),
     }
@@ -379,7 +383,14 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
     let token = tokens.consume().unwrap();
     match token.kind() {
         TokenKind::IntConst(int) => *output += &format!("push constant {}\n", int),
-        TokenKind::StringConst(string) => *output += &string, //TODO String.new
+        TokenKind::StringConst(string) => {
+            *output += &format!("push constant {}\n", string.len());
+            *output += "call String.new 1\n";
+            for ch in string.bytes() {
+                *output += &format!("push constant {}\n", ch);
+                *output += "call String.appendChar 2\n";
+            }
+        },
         TokenKind::Keyword(keyword) => {
             match keyword {
                 // keywordConstant
@@ -394,10 +405,12 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
             if tokens.next().unwrap().expect_symbol(SymbolKind::LSquare).is_ok() {
                 // term:   varName '[' expression ']'
                 tokens.consume();
-                *output += &format!("<symbol> {} </symbol>\n", "[");
                 compile_expression(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RSquare).unwrap();
-                *output += &format!("<symbol> {} </symbol>\n", "]");
+                *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
+                *output += "add\n";
+                *output += "pop pointer 1\n";
+                *output += "push that 0\n";
             } else if tokens.next().unwrap().expect_symbol(SymbolKind::LParen).is_ok() {
                 // subroutineCall:  subroutineName '(' expressionList ')'
                 tokens.consume();
