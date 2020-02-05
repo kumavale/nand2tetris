@@ -119,6 +119,9 @@ fn compile_subroutine_dec(output: &mut String, tokens: &mut Tokens, st: &mut Sym
                 let subroutineName = token.expect_identifier().unwrap();
                 tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
+                if keyword == "method" {
+                    st.define("this", varType, Kind::Argument);
+                }
                 compile_parameter_list(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
                 compile_subroutine_body(output, tokens, st, subroutineName, keyword);
@@ -324,7 +327,7 @@ fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
                 let (ident, nArgs) = if let Some(VarType::ClassName(cn)) = st.type_of(&ident) {
                     // method
-                    *output += &format!("push {} 0\n", st.kind_of(&ident).unwrap());
+                    *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
                     (cn, compile_expression_list(output, tokens, st)+1)
                 } else {
                     // function
@@ -425,13 +428,13 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
                 let subroutineName = token.expect_identifier().unwrap();
                 tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
-                let nArgs = if let Some(VarType::ClassName(_)) = st.type_of(&ident) {
+                let (ident, nArgs) = if let Some(VarType::ClassName(cn)) = st.type_of(&ident) {
                     // method
-                    *output += &format!("push {} 0\n", st.kind_of(&ident).unwrap());
-                    compile_expression_list(output, tokens, st)+1
+                    *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
+                    (cn, compile_expression_list(output, tokens, st)+1)
                 } else {
                     // function
-                    compile_expression_list(output, tokens, st)
+                    (ident.to_string(), compile_expression_list(output, tokens, st))
                 };
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
                 *output += &format!("call {}.{} {}\n", ident, subroutineName, nArgs);
