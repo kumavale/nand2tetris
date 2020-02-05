@@ -39,7 +39,8 @@ pub struct SymbolTable {
     pub local_counter:    usize,
     pub argument_counter: usize,
 
-    pub class_name: String,
+    pub class_name:       String,
+    pub label_serial:     usize,
 }
 
 impl SymbolTable {
@@ -50,7 +51,8 @@ impl SymbolTable {
             static_counter:   0,
             local_counter:    0,
             argument_counter: 0,
-            class_name: String::new(),
+            class_name:       String::new(),
+            label_serial:     0,
         }
     }
 
@@ -59,7 +61,22 @@ impl SymbolTable {
     }
 
     pub fn scope_out(&mut self) {
-        self.tables.pop();
+        if let Some(tables) = self.tables.pop() {;
+            for table in tables.iter() {
+                match table.kind {
+                    Kind::Field    => self.field_counter    -= 1,
+                    Kind::Static   => self.static_counter   -= 1,
+                    Kind::Local    => self.local_counter    -= 1,
+                    Kind::Argument => self.argument_counter -= 1,
+                }
+            }
+        }
+    }
+
+    pub fn get_serial_and_inc(&mut self) -> usize {
+        let serial = self.label_serial;
+        self.label_serial += 1;
+        serial
     }
 
     /// Defines a new identifier of the given name, type, and kind,
@@ -111,11 +128,16 @@ impl SymbolTable {
 
     /// Returns the kind of the named identifier in the current scope.
     /// If the identifier is unknown in the current scope, returns None.
-    pub fn kind_of(&self, name: &str) -> Option<Kind> {
+    pub fn kind_of(&self, name: &str) -> Option<&str> {
         for table in self.tables.iter().rev() {
             for t in table.iter() {
                 if t.name == name {
-                    return Some(t.kind);
+                    return match t.kind {
+                        Kind::Field =>    Some("field"),
+                        Kind::Static =>   Some("static"),
+                        Kind::Local =>    Some("local"),
+                        Kind::Argument => Some("argument"),
+                    };
                 }
             }
         }

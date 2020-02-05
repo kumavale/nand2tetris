@@ -44,7 +44,7 @@ pub fn compile(tokens: &mut Tokens) -> String {
     let mut output = String::new();
     let mut st = SymbolTable::new();
     compile_class(&mut output, tokens, &mut st);
-//println!("{:?}", st); std::process::exit(0);
+//println!("{:#?}", st); std::process::exit(0);
     output
 }
 
@@ -58,6 +58,7 @@ fn compile_class(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable)
     compile_class_var_dec(output, tokens, st);
     compile_subroutine_dec(output, tokens, st);
     tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
+    st.scope_out();
 }
 
 // Compiles a static variable declaration, or a field declaration.
@@ -95,14 +96,19 @@ fn compile_subroutine_dec(output: &mut String, tokens: &mut Tokens, st: &mut Sym
     while let Some(next) = tokens.next() {
         if let Ok(keyword) = next.expect_keyword() {
             if keyword == "constructor" || keyword == "function" || keyword == "method" {
+                st.scope_in();
                 tokens.consume();
-                let varType = tokens.consume().unwrap().expect_type().unwrap();
-                let subroutineName = tokens.consume().unwrap().expect_identifier().unwrap();
-                *output += &format!("function {}.{} {}\n", st.class_name, subroutineName, st.var_count(Kind::Local));
+                let token = tokens.next().unwrap();
+                let varType = token.expect_type().unwrap();
+                tokens.consume();
+                let token = tokens.next().unwrap();
+                let subroutineName = token.expect_identifier().unwrap();
+                tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
                 compile_parameter_list(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
-                compile_subroutine_body(output, tokens, st);
+                compile_subroutine_body(output, tokens, st, subroutineName);
+                st.scope_out();
             } else {
                 return;
             }
@@ -133,13 +139,12 @@ fn compile_parameter_list(output: &mut String, tokens: &mut Tokens, st: &mut Sym
 }
 
 // Compiles a subroutine's body.
-fn compile_subroutine_body(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
+fn compile_subroutine_body(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable, subroutineName: &str) {
     tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
-    st.scope_in();
     compile_var_dec(output, tokens, st);
+    *output += &format!("\nfunction {}.{} {}\n", st.class_name, subroutineName, st.var_count(Kind::Local));
     compile_statements(output, tokens, st);
     tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
-    st.scope_out();
 }
 
 // Compiles a var declaration.
@@ -190,13 +195,12 @@ fn compile_statements(output: &mut String, tokens: &mut Tokens, st: &mut SymbolT
 // Compiles a let statement.
 fn compile_let(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     // TODO
-    *output += &format!("<letStatement>\n");
     match tokens.consume().unwrap().expect_keyword() {
-        Ok(keyword) => {  // determinate "let"
-            *output += &format!("<keyword> {} </keyword>\n", keyword);
+        Ok(_) => {  // determinate "let"
             let varName = tokens.consume().unwrap().expect_identifier().unwrap();
-            *output += &format!("<identifier> {} </identifier>\n", varName);
+            let assign = format!("pop {} {}\n", st.kind_of(&varName).unwrap(), st.index_of(&varName).unwrap());
             if tokens.next().unwrap().expect_symbol(SymbolKind::LSquare).is_ok() {
+                // TODO Array
                 tokens.consume();
                 *output += &format!("<symbol> {} </symbol>\n", "[");
                 compile_expression(output, tokens, st);
@@ -204,85 +208,73 @@ fn compile_let(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
                 *output += &format!("<symbol> {} </symbol>\n", "]");
             }
             tokens.consume().unwrap().expect_symbol(SymbolKind::Eq).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", "=");
             compile_expression(output, tokens, st);
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", ";");
+            *output += &assign;
         },
         Err(e) => panic!(e),
     }
-    *output += &format!("</letStatement>\n");
 }
 
 // Compiles an if statement, possibly with a trailing else clause.
 fn compile_if(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    // TODO
-    *output += &format!("<ifStatement>\n");
     match tokens.consume().unwrap().expect_keyword() {
-        Ok(keyword) => {  // determinate "if"
-            *output += &format!("<keyword> {} </keyword>\n", keyword);
+        Ok(_) => {  // determinate "if"
+            let serial = st.get_serial_and_inc();
             tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", "(");
             compile_expression(output, tokens, st);
             tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", ")");
+            *output += &format!("not\nif-goto else{}\n", serial);
             tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", "{");
             st.scope_in();
             compile_statements(output, tokens, st);
             tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", "}");
             st.scope_out();
+            *output += &format!("goto ifend{}\n", serial);
+            *output += &format!("label else{}\n", serial);
             if let Ok(keyword) = tokens.next().unwrap().expect_keyword() {
                 if keyword == "else" {
                     tokens.consume();
-                    *output += &format!("<keyword> {} </keyword>\n", keyword);
                     tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
-                    *output += &format!("<symbol> {} </symbol>\n", "{");
                     st.scope_in();
                     compile_statements(output, tokens, st);
                     tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
-                    *output += &format!("<symbol> {} </symbol>\n", "}");
                     st.scope_out();
                 }
             }
+            *output += &format!("label ifend{}\n", serial);
         },
         Err(e) => panic!(e)
     }
-    *output += &format!("</ifStatement>\n");
 }
 
 // Compiles a while statement.
-/// whileStatement:  'while' '(' expression ')' '{' statements '}'
 fn compile_while(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    // TODO
-    *output += &format!("<whileStatement>\n");
     match tokens.consume().unwrap().expect_keyword() {
-        Ok(keyword) => {  // determinate "while"
-            *output += &format!("<keyword> {} </keyword>\n", keyword);
+        Ok(_) => {  // determinate "while"
+            let serial = st.get_serial_and_inc();
+            *output += &format!("label whilebegin{}\n", serial);
             tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", "(");
             compile_expression(output, tokens, st);
             tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", ")");
+            *output += &format!("not\nif-goto whileend{}\n", serial);
             tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", "{");
             st.scope_in();
             compile_statements(output, tokens, st);
+            *output += &format!("goto whilebegin{}\n", serial);
             tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
-            *output += &format!("<symbol> {} </symbol>\n", "}");
             st.scope_out();
+            *output += &format!("label whileend{}\n", serial);
         },
         Err(e) => panic!(e)
     }
-    *output += &format!("</whileStatement>\n");
 }
 
 // Compiles a do statement.
 fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     // TODO Working...
     match tokens.consume().unwrap().expect_keyword() {
-        Ok(keyword) => {  // determinate "do"
+        Ok(_) => {  // determinate "do"
             // subroutineCall
             let token = tokens.next().unwrap();
             let ident = token.expect_identifier().unwrap();
@@ -305,6 +297,7 @@ fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
             }
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
+            *output += "pop temp 0\n";
         },
         Err(e) => panic!(e)
     }
@@ -313,7 +306,7 @@ fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
 // Compiles a return statement.
 fn compile_return(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     match tokens.consume().unwrap().expect_keyword() {
-        Ok(keyword) => {  // determinate "return"
+        Ok(_) => {  // determinate "return"
             // (expression)?
             if tokens.next().unwrap().expect_symbol(SymbolKind::Semicolon).is_err() {
                 compile_expression(output, tokens, st);
@@ -357,15 +350,14 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
         TokenKind::Keyword(keyword) => {
             match keyword {
                 // keywordConstant
-                KeywordKind::True  => *output += &format!("<keyword> true </keyword>\n"),
-                KeywordKind::False => *output += &format!("<keyword> false </keyword>\n"),
-                KeywordKind::Null  => *output += &format!("<keyword> null </keyword>\n"),
+                KeywordKind::True  => *output += &format!("push constant 1\nneg\n"),
+                KeywordKind::False |
+                KeywordKind::Null  => *output += &format!("push constant 0\n"),
                 KeywordKind::This  => *output += &format!("<keyword> this </keyword>\n"),
                 _ => panic!("{}: expect keywordConstant. but got {:?}", token.line_no(), keyword),
             }
         },
         TokenKind::Identifier(ident) => {
-            *output += &format!("<identifier> {} </identifier>\n", ident);
             if tokens.next().unwrap().expect_symbol(SymbolKind::LSquare).is_ok() {
                 // term:   varName '[' expression ']'
                 tokens.consume();
@@ -383,14 +375,15 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
             } else if tokens.next().unwrap().expect_symbol(SymbolKind::Period).is_ok() {
                 // subroutineCall:  (className | varName) '.' subroutineName '(' expressionList ')'
                 tokens.consume();
-                *output += &format!("<symbol> {} </symbol>\n", ".");
-                let subroutineName = tokens.consume().unwrap().expect_identifier().unwrap();
-                *output += &format!("<identifier> {} </identifier>\n", subroutineName);
+                let token = tokens.next().unwrap();
+                let subroutineName = token.expect_identifier().unwrap();
+                tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
-                *output += &format!("<symbol> {} </symbol>\n", "(");
-                compile_expression_list(output, tokens, st);
+                let nArgs = compile_expression_list(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
-                *output += &format!("<symbol> {} </symbol>\n", ")");
+                *output += &format!("call {}.{} {}\n", ident, subroutineName, nArgs);
+            } else {
+                *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
             }
         },
         TokenKind::Symbol(symbol) => {
@@ -403,11 +396,11 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
                 // unaryOp term
                 SymbolKind::Minus => {
                     compile_term(output, tokens, st);
-                    *output += "neg";
+                    *output += "neg\n";
                 },
                 SymbolKind::Not => {
                     compile_term(output, tokens, st);
-                    *output += "not";
+                    *output += "not\n";
                 },
                 _ => panic!("{}: unexpect symbol: {:?}", token.line_no(), symbol),
             }
@@ -417,14 +410,12 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
 
 // Compiles a (possibly empty) comma-separated list of expressions.
 fn compile_expression_list(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) -> usize {
-    // TODO
     let mut exp_cnt = 0;
     if tokens.next().unwrap().expect_symbol(SymbolKind::RParen).is_err() {
         compile_expression(output, tokens, st);
         exp_cnt += 1;
         while tokens.next().unwrap().expect_symbol(SymbolKind::Comma).is_ok() {
             tokens.consume();
-            *output += &format!("<symbol> {} </symbol>\n", ",");
             compile_expression(output, tokens, st);
             exp_cnt += 1;
         }
