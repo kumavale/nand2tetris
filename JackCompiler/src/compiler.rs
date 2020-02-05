@@ -54,8 +54,7 @@ fn parse_subroutine(tokens: &mut Tokens, st: &mut SymbolTable) {
         if let Ok(keyword) = token.expect_keyword() {
             if keyword == "constructor" || keyword == "function" || keyword == "method" {
                 tokens_iter.next();
-                let token = tokens_iter.next().unwrap();
-                let subroutineName = token.expect_identifier().unwrap();
+                let subroutineName = tokens_iter.next().unwrap().expect_identifier().unwrap();
                 st.define_subroutine(&keyword, &subroutineName);
             }
         }
@@ -219,7 +218,6 @@ fn compile_statements(output: &mut String, tokens: &mut Tokens, st: &mut SymbolT
 
 // Compiles a let statement.
 fn compile_let(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    // TODO
     match tokens.consume().unwrap().expect_keyword() {
         Ok(_) => {  // determinate "let"
             let token = tokens.next().unwrap();
@@ -382,7 +380,6 @@ fn compile_expression(output: &mut String, tokens: &mut Tokens, st: &mut SymbolT
 // suffices to distinguish between the possibilities.
 // Any other token is not part of this term and should not be advanced over.
 fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    // TODO
     let token = tokens.consume().unwrap();
     match token.kind() {
         TokenKind::IntConst(int) => *output += &format!("push constant {}\n", int),
@@ -417,10 +414,14 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
             } else if tokens.next().unwrap().expect_symbol(SymbolKind::LParen).is_ok() {
                 // subroutineCall:  subroutineName '(' expressionList ')'
                 tokens.consume();
-                *output += &format!("<symbol> {} </symbol>\n", "(");
-                compile_expression_list(output, tokens, st);
+                let nArgs = if st.is_method(&ident) {
+                    *output += "push pointer 0\n";
+                    compile_expression_list(output, tokens, st)+1
+                } else {
+                    compile_expression_list(output, tokens, st)
+                };
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
-                *output += &format!("<symbol> {} </symbol>\n", ")");
+                *output += &format!("call {}.{} {}\n", st.class_name, ident, nArgs);
             } else if tokens.next().unwrap().expect_symbol(SymbolKind::Period).is_ok() {
                 // subroutineCall:  (className | varName) '.' subroutineName '(' expressionList ')'
                 tokens.consume();

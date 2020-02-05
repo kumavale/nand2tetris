@@ -108,4 +108,3 @@ goto whilebegin4
 label whileend4
 push constant 0
 return
-

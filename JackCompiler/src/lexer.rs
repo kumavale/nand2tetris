@@ -92,19 +92,19 @@ fn starts_with(input_chars: &mut Chars, s: &str) -> bool {
 }
 
 fn is_keyword(ch: char, mut input_chars: &mut Chars) -> Option<KeywordKind> {
-    if ch == 'c' && starts_with(&mut input_chars, "lass")            { Some(KeywordKind::Class) }
-    else if ch == 'm' && starts_with(&mut input_chars, "ethod")      { Some(KeywordKind::Method) }
-    else if ch == 'f' && starts_with(&mut input_chars, "unction")    { Some(KeywordKind::Function) }
-    else if ch == 'c' && starts_with(&mut input_chars, "onstructor") { Some(KeywordKind::Constructor) }
-    else if ch == 'i' && starts_with(&mut input_chars, "nt")         { Some(KeywordKind::Int) }
-    else if ch == 'b' && starts_with(&mut input_chars, "oolean")     { Some(KeywordKind::Boolean) }
-    else if ch == 'c' && starts_with(&mut input_chars, "har")        { Some(KeywordKind::Char) }
-    else if ch == 'v' && starts_with(&mut input_chars, "oid")        { Some(KeywordKind::Void) }
-    else if ch == 'v' && starts_with(&mut input_chars, "ar")         { Some(KeywordKind::Var) }
-    else if ch == 's' && starts_with(&mut input_chars, "tatic")      { Some(KeywordKind::Static) }
-    else if ch == 'f' && starts_with(&mut input_chars, "ield")       { Some(KeywordKind::Field) }
-    else if ch == 'l' && starts_with(&mut input_chars, "et")         { Some(KeywordKind::Let) }
-    else if ch == 'd' && starts_with(&mut input_chars, "o")          { Some(KeywordKind::Do) }
+    if ch == 'c' && starts_with(&mut input_chars, "lass ")            { Some(KeywordKind::Class) }
+    else if ch == 'm' && starts_with(&mut input_chars, "ethod ")      { Some(KeywordKind::Method) }
+    else if ch == 'f' && starts_with(&mut input_chars, "unction ")    { Some(KeywordKind::Function) }
+    else if ch == 'c' && starts_with(&mut input_chars, "onstructor ") { Some(KeywordKind::Constructor) }
+    else if ch == 'i' && starts_with(&mut input_chars, "nt ")         { Some(KeywordKind::Int) }
+    else if ch == 'b' && starts_with(&mut input_chars, "oolean ")     { Some(KeywordKind::Boolean) }
+    else if ch == 'c' && starts_with(&mut input_chars, "har ")        { Some(KeywordKind::Char) }
+    else if ch == 'v' && starts_with(&mut input_chars, "oid ")        { Some(KeywordKind::Void) }
+    else if ch == 'v' && starts_with(&mut input_chars, "ar ")         { Some(KeywordKind::Var) }
+    else if ch == 's' && starts_with(&mut input_chars, "tatic ")      { Some(KeywordKind::Static) }
+    else if ch == 'f' && starts_with(&mut input_chars, "ield ")       { Some(KeywordKind::Field) }
+    else if ch == 'l' && starts_with(&mut input_chars, "et ")         { Some(KeywordKind::Let) }
+    else if ch == 'd' && starts_with(&mut input_chars, "o ")          { Some(KeywordKind::Do) }
     else if ch == 'i' && starts_with(&mut input_chars, "f")          { Some(KeywordKind::If) }
     else if ch == 'e' && starts_with(&mut input_chars, "lse")        { Some(KeywordKind::Else) }
     else if ch == 'w' && starts_with(&mut input_chars, "hile")       { Some(KeywordKind::While) }

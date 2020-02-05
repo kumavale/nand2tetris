@@ -1,3 +1,4 @@
+
 function Ball.new 0
 push constant 15
 call Memory.alloc 1
@@ -25,6 +26,7 @@ call Ball.show 1
 pop temp 0
 push pointer 0
 return
+
 function Ball.dispose 0
 push argument 0
 pop pointer 0
@@ -33,6 +35,7 @@ call Memory.deAlloc 1
 pop temp 0
 push constant 0
 return
+
 function Ball.show 0
 push argument 0
 pop pointer 0
@@ -45,6 +48,7 @@ call Ball.draw 1
 pop temp 0
 push constant 0
 return
+
 function Ball.hide 0
 push argument 0
 pop pointer 0
@@ -56,6 +60,7 @@ call Ball.draw 1
 pop temp 0
 push constant 0
 return
+
 function Ball.draw 0
 push argument 0
 pop pointer 0
@@ -71,11 +76,13 @@ call Screen.drawRectangle 4
 pop temp 0
 push constant 0
 return
+
 function Ball.getLeft 0
 push argument 0
 pop pointer 0
 push this 0
 return
+
 function Ball.getRight 0
 push argument 0
 pop pointer 0
@@ -83,6 +90,7 @@ push this 0
 push constant 5
 add
 return
+
 function Ball.setDestination 3
 push argument 0
 pop pointer 0
@@ -106,7 +114,7 @@ lt
 pop this 7
 push this 7
 not
-if-goto endif.b1f9cd22a5f59e5a
+if-goto else0
 push local 0
 pop local 2
 push local 1
@@ -121,8 +129,8 @@ push this 0
 push argument 1
 lt
 pop this 9
-goto endelse.b1f9cd22a5f59e5a
-label endif.b1f9cd22a5f59e5a
+goto ifend0
+label else0
 push this 0
 push argument 1
 lt
@@ -131,7 +139,7 @@ push this 1
 push argument 2
 lt
 pop this 9
-label endelse.b1f9cd22a5f59e5a
+label ifend0
 push constant 2
 push local 1
 call Math.multiply 2
@@ -150,6 +158,7 @@ call Math.multiply 2
 pop this 6
 push constant 0
 return
+
 function Ball.move 0
 push argument 0
 pop pointer 0
@@ -160,135 +169,144 @@ push this 4
 push constant 0
 lt
 not
-if-goto endif.bb35b694e786bd4e
+if-goto else1
 push this 4
 push this 5
 add
 pop this 4
-goto endelse.bb35b694e786bd4e
-label endif.bb35b694e786bd4e
+goto ifend1
+label else1
 push this 4
 push this 6
 add
 pop this 4
 push this 9
 not
-if-goto endif.65f028507a0f197e
+if-goto else2
 push this 7
 not
-if-goto endif.fc727a3785491f83
+if-goto else3
 push this 0
 push constant 4
 add
 pop this 0
-goto endelse.fc727a3785491f83
-label endif.fc727a3785491f83
+goto ifend3
+label else3
 push this 1
 push constant 4
 add
 pop this 1
-label endelse.fc727a3785491f83
-goto endelse.65f028507a0f197e
-label endif.65f028507a0f197e
+label ifend3
+goto ifend2
+label else2
 push this 7
 not
-if-goto endif.4256dcdb6a93eee9
+if-goto else4
 push this 0
 push constant 4
 sub
 pop this 0
-goto endelse.4256dcdb6a93eee9
-label endif.4256dcdb6a93eee9
+goto ifend4
+label else4
 push this 1
 push constant 4
 sub
 pop this 1
-label endelse.4256dcdb6a93eee9
-label endelse.65f028507a0f197e
-label endelse.bb35b694e786bd4e
+label ifend4
+label ifend2
+label ifend1
 push this 8
 not
-if-goto endif.e48ad95839f02d5e
+if-goto else5
 push this 7
 not
-if-goto endif.e267715c728a5356
+if-goto else6
 push this 1
 push constant 4
 add
 pop this 1
-goto endelse.e267715c728a5356
-label endif.e267715c728a5356
+goto ifend6
+label else6
 push this 0
 push constant 4
 add
 pop this 0
-label endelse.e267715c728a5356
-goto endelse.e48ad95839f02d5e
-label endif.e48ad95839f02d5e
+label ifend6
+goto ifend5
+label else5
 push this 7
 not
-if-goto endif.1b0c5d4586d47b23
+if-goto else7
 push this 1
 push constant 4
 sub
 pop this 1
-goto endelse.1b0c5d4586d47b23
-label endif.1b0c5d4586d47b23
+goto ifend7
+label else7
 push this 0
 push constant 4
 sub
 pop this 0
-label endelse.1b0c5d4586d47b23
-label endelse.e48ad95839f02d5e
+label ifend7
+label ifend5
 push this 0
 push this 10
 gt
 not
 not
-if-goto endif.e49d0ca26d1eec3e
+if-goto else8
 push constant 1
 pop this 14
 push this 10
 pop this 0
-label endif.e49d0ca26d1eec3e
+goto ifend8
+label else8
+label ifend8
 push this 0
 push this 11
 lt
 not
 not
-if-goto endif.12c839c37f5ae4b4
+if-goto else9
 push constant 2
 pop this 14
 push this 11
 pop this 0
-label endif.12c839c37f5ae4b4
+goto ifend9
+label else9
+label ifend9
 push this 1
 push this 12
 gt
 not
 not
-if-goto endif.ba0c2f4276944132
+if-goto else10
 push constant 3
 pop this 14
 push this 12
 pop this 1
-label endif.ba0c2f4276944132
+goto ifend10
+label else10
+label ifend10
 push this 1
 push this 13
 lt
 not
 not
-if-goto endif.b818dc9414921a6c
+if-goto else11
 push constant 4
 pop this 14
 push this 13
 pop this 1
-label endif.b818dc9414921a6c
+goto ifend11
+label else11
+label ifend11
 push pointer 0
 call Ball.show 1
 pop temp 0
 push this 14
 return
+
 function Ball.bounce 5
 push argument 0
 pop pointer 0
@@ -304,11 +322,11 @@ push argument 1
 push constant 0
 eq
 not
-if-goto endif.fce19c29eb027fe7
+if-goto else12
 push constant 10
 pop local 4
-goto endelse.fce19c29eb027fe7
-label endif.fce19c29eb027fe7
+goto ifend12
+label else12
 push this 2
 push constant 0
 lt
@@ -327,20 +345,20 @@ eq
 and
 or
 not
-if-goto endif.b7ad55ba92781561
+if-goto else13
 push constant 20
 pop local 4
-goto endelse.b7ad55ba92781561
-label endif.b7ad55ba92781561
+goto ifend13
+label else13
 push constant 5
 pop local 4
-label endelse.b7ad55ba92781561
-label endelse.fce19c29eb027fe7
+label ifend13
+label ifend12
 push this 14
 push constant 1
 eq
 not
-if-goto endif.dc358cd75a063d9a
+if-goto else14
 push constant 506
 pop local 0
 push local 3
@@ -356,13 +374,13 @@ push local 4
 call Math.multiply 2
 add
 pop local 1
-goto endelse.dc358cd75a063d9a
-label endif.dc358cd75a063d9a
+goto ifend14
+label else14
 push this 14
 push constant 2
 eq
 not
-if-goto endif.aaffdd70e60c8cc3
+if-goto else15
 push constant 0
 pop local 0
 push local 3
@@ -377,13 +395,13 @@ push local 4
 call Math.multiply 2
 add
 pop local 1
-goto endelse.aaffdd70e60c8cc3
-label endif.aaffdd70e60c8cc3
+goto ifend15
+label else15
 push this 14
 push constant 3
 eq
 not
-if-goto endif.46b6da0354f826ef
+if-goto else16
 push constant 250
 pop local 1
 push local 2
@@ -399,8 +417,8 @@ push local 4
 call Math.multiply 2
 add
 pop local 0
-goto endelse.46b6da0354f826ef
-label endif.46b6da0354f826ef
+goto ifend16
+label else16
 push constant 0
 pop local 1
 push local 2
@@ -415,9 +433,9 @@ push local 4
 call Math.multiply 2
 add
 pop local 0
-label endelse.46b6da0354f826ef
-label endelse.aaffdd70e60c8cc3
-label endelse.dc358cd75a063d9a
+label ifend16
+label ifend15
+label ifend14
 push pointer 0
 push local 0
 push local 1

@@ -6,7 +6,8 @@ mod compiler;
 mod symbol;
 
 use std::env;
-use std::fs::read_to_string;
+use std::io::Write;
+use std::fs::{File, read_to_string};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -18,16 +19,23 @@ fn main() {
     };
 
     for path in arg2paths(&path).iter() {
-        //println!("[{}] => [{}/{}.vm]", path, get_path(&path), get_stem(&path));
+        let output_path = format!("{}/{}.vm", get_path(&path), get_stem(&path));
         let input = match read_to_string(&path) {
             Ok(content) => content,
             Err(message) => panic!("File at path '{}‘ could not be read: {}", path, message),
         };
 
         let mut tokens = lexer::tokenize(&input);
-        //let xml = lexer::tokenize_tokens_XML(&mut tokens);
-        let xml = compiler::compile(&mut tokens);
-        println!("{}", xml);  // `cargo run Main.jack > Main.xml`
+        let vm = compiler::compile(&mut tokens);
+
+        let mut output = match File::create(&output_path) {
+            Ok(file) => file,
+            Err(e) => panic!("Could not create file because: {}", e),
+        };
+        match output.write_all(vm.as_bytes()) {
+            Ok(_) => println!("'{:?}' has been created successfully.", output),
+            Err(e) => panic!("Coulnd not write to file because: {}", e),
+        }
     }
 }
 
