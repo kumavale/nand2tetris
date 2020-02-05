@@ -177,7 +177,7 @@ impl Token {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Tokens {
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
     cur: usize,
     len: usize,
 }

@@ -31,6 +31,19 @@ impl Table {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum SubroutineKind {
+    Function,
+    Method,
+    Constructor,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SubroutineTable {
+    pub name: String,
+    pub kind: SubroutineKind,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct SymbolTable {
     pub tables: Vec<Vec<Table>>,
 
@@ -41,6 +54,8 @@ pub struct SymbolTable {
 
     pub class_name:       String,
     pub label_serial:     usize,
+
+    pub subroutine_table: Vec<SubroutineTable>,
 }
 
 impl SymbolTable {
@@ -53,6 +68,7 @@ impl SymbolTable {
             argument_counter: 0,
             class_name:       String::new(),
             label_serial:     0,
+            subroutine_table: Vec::new(),
         }
     }
 
@@ -61,7 +77,7 @@ impl SymbolTable {
     }
 
     pub fn scope_out(&mut self) {
-        if let Some(tables) = self.tables.pop() {;
+        if let Some(tables) = self.tables.pop() {
             for table in tables.iter() {
                 match table.kind {
                     Kind::Field    => self.field_counter    -= 1,
@@ -77,6 +93,25 @@ impl SymbolTable {
         let serial = self.label_serial;
         self.label_serial += 1;
         serial
+    }
+
+    pub fn define_subroutine(&mut self, keyword: &str, name: &str) {
+        let kind = match keyword {
+            "function"    => SubroutineKind::Function,
+            "method"      => SubroutineKind::Method,
+            "constructor" => SubroutineKind::Constructor,
+            _ => panic!("invalid SubroutineKind: {}", keyword)
+        };
+        self.subroutine_table.push(SubroutineTable { name: name.to_string(), kind });
+    }
+
+    pub fn is_method(&self, subroutineName: &str) -> bool {
+        for table in self.subroutine_table.iter() {
+            if subroutineName == table.name {
+                return table.kind == SubroutineKind::Method;
+            }
+        }
+        false
     }
 
     /// Defines a new identifier of the given name, type, and kind,
@@ -133,7 +168,7 @@ impl SymbolTable {
             for t in table.iter() {
                 if t.name == name {
                     return match t.kind {
-                        Kind::Field =>    Some("field"),
+                        Kind::Field =>    Some("this"),
                         Kind::Static =>   Some("static"),
                         Kind::Local =>    Some("local"),
                         Kind::Argument => Some("argument"),

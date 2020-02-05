@@ -43,9 +43,23 @@ use super::symbol::*;
 pub fn compile(tokens: &mut Tokens) -> String {
     let mut output = String::new();
     let mut st = SymbolTable::new();
+    parse_subroutine(tokens, &mut st);
     compile_class(&mut output, tokens, &mut st);
-//println!("{:#?}", st); std::process::exit(0);
     output
+}
+
+fn parse_subroutine(tokens: &mut Tokens, st: &mut SymbolTable) {
+    let mut tokens_iter = tokens.tokens.iter();
+    while let Some(token) = tokens_iter.next() {
+        if let Ok(keyword) = token.expect_keyword() {
+            if keyword == "constructor" || keyword == "function" || keyword == "method" {
+                tokens_iter.next();
+                let token = tokens_iter.next().unwrap();
+                let subroutineName = token.expect_identifier().unwrap();
+                st.define_subroutine(&keyword, &subroutineName);
+            }
+        }
+    }
 }
 
 // Compiles a complete class.
@@ -62,7 +76,7 @@ fn compile_class(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable)
 }
 
 // Compiles a static variable declaration, or a field declaration.
-fn compile_class_var_dec(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
+fn compile_class_var_dec(_output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     while let Some(next) = tokens.next() {
         if let Ok(keyword) = next.expect_keyword() {
             if keyword == "static" || keyword == "field" {
@@ -107,7 +121,7 @@ fn compile_subroutine_dec(output: &mut String, tokens: &mut Tokens, st: &mut Sym
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
                 compile_parameter_list(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
-                compile_subroutine_body(output, tokens, st, subroutineName);
+                compile_subroutine_body(output, tokens, st, subroutineName, keyword);
                 st.scope_out();
             } else {
                 return;
@@ -120,8 +134,7 @@ fn compile_subroutine_dec(output: &mut String, tokens: &mut Tokens, st: &mut Sym
 
 // Compiles a (possibly empty) parameter list.
 // Does not handle the enclosing "()".
-fn compile_parameter_list(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    // TODO
+fn compile_parameter_list(_output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     if let Some(next) = tokens.next() {
         if let Ok(varType) = next.expect_type() {
             tokens.consume();
@@ -139,17 +152,26 @@ fn compile_parameter_list(output: &mut String, tokens: &mut Tokens, st: &mut Sym
 }
 
 // Compiles a subroutine's body.
-fn compile_subroutine_body(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable, subroutineName: &str) {
+fn compile_subroutine_body(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable,
+    subroutineName: &str, keyword: &str)
+{
     tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
     compile_var_dec(output, tokens, st);
     *output += &format!("\nfunction {}.{} {}\n", st.class_name, subroutineName, st.var_count(Kind::Local));
+    if keyword == "method" {
+        *output += "push argument 0\n";
+        *output += "pop pointer 0\n";
+    } else if keyword == "constructor" {
+        *output += &format!("push constant {}\n", st.var_count(Kind::Field)); // probably Kind::Static too
+        *output += "call Memory.alloc 1\n";
+        *output += "pop pointer 0\n";
+    }
     compile_statements(output, tokens, st);
     tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
 }
 
 // Compiles a var declaration.
-fn compile_var_dec(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    // TODO
+fn compile_var_dec(_output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     while let Some(next) = tokens.next() {
         if let Ok(keyword) = next.expect_keyword() {
             if keyword == "var" {
@@ -272,7 +294,6 @@ fn compile_while(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable)
 
 // Compiles a do statement.
 fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    // TODO Working...
     match tokens.consume().unwrap().expect_keyword() {
         Ok(_) => {  // determinate "do"
             // subroutineCall
@@ -281,9 +302,14 @@ fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
             tokens.consume();
             if tokens.next().unwrap().expect_symbol(SymbolKind::LParen).is_ok() {
                 // subroutineCall:  subroutineName '(' expressionList ')'
-                // TODO
                 tokens.consume();
-                compile_expression_list(output, tokens, st);
+                let nArgs = if st.is_method(&ident) {
+                    *output += "push pointer 0\n";
+                    compile_expression_list(output, tokens, st)+1
+                } else {
+                    compile_expression_list(output, tokens, st)
+                };
+                *output += &format!("call {}.{} {}\n", st.class_name, ident, nArgs);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
             } else {
                 // subroutineCall:  (className | varName) '.' subroutineName '(' expressionList ')'
@@ -292,7 +318,14 @@ fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
                 let subroutineName = token.expect_identifier().unwrap();
                 tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
-                let nArgs = compile_expression_list(output, tokens, st);
+                let (ident, nArgs) = if let Some(VarType::ClassName(cn)) = st.type_of(&ident) {
+                    // method
+                    *output += &format!("push {} 0\n", st.kind_of(&ident).unwrap());
+                    (cn, compile_expression_list(output, tokens, st)+1)
+                } else {
+                    // function
+                    (ident.to_string(), compile_expression_list(output, tokens, st))
+                };
                 *output += &format!("call {}.{} {}\n", ident, subroutineName, nArgs);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
             }
@@ -353,7 +386,7 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
                 KeywordKind::True  => *output += &format!("push constant 1\nneg\n"),
                 KeywordKind::False |
                 KeywordKind::Null  => *output += &format!("push constant 0\n"),
-                KeywordKind::This  => *output += &format!("<keyword> this </keyword>\n"),
+                KeywordKind::This  => *output += &format!("push pointer 0\n"),
                 _ => panic!("{}: expect keywordConstant. but got {:?}", token.line_no(), keyword),
             }
         },
@@ -379,7 +412,14 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
                 let subroutineName = token.expect_identifier().unwrap();
                 tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
-                let nArgs = compile_expression_list(output, tokens, st);
+                let nArgs = if let Some(VarType::ClassName(_)) = st.type_of(&ident) {
+                    // method
+                    *output += &format!("push {} 0\n", st.kind_of(&ident).unwrap());
+                    compile_expression_list(output, tokens, st)+1
+                } else {
+                    // function
+                    compile_expression_list(output, tokens, st)
+                };
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
                 *output += &format!("call {}.{} {}\n", ident, subroutineName, nArgs);
             } else {
