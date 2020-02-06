@@ -14,8 +14,8 @@ pub fn tokenize(input: &str) -> Tokens {
             '/' => {
                 let next = input_chars.nth(0).unwrap();
                 match next {
-                    '/' => until_ignore(&mut input_chars, "\n"),
-                    '*' => until_ignore(&mut input_chars, "*/"),
+                    '/' => until_ignore(&mut input_chars, "\n", &mut line_no),
+                    '*' => until_ignore(&mut input_chars, "*/", &mut line_no),
                     _ => tokens.push(Token::new(TokenKind::Symbol(SymbolKind::Slash), line_no)),
                 }
             },
@@ -71,9 +71,12 @@ pub fn tokenize(input: &str) -> Tokens {
     Tokens::new(tokens)
 }
 
-fn until_ignore(input_chars: &mut Chars, last: &str) {
+fn until_ignore(input_chars: &mut Chars, last: &str, line_no: &mut u32) {
     while !input_chars.as_str().starts_with(last) {
-        input_chars.next();
+        let ch = input_chars.next().unwrap();
+        if ch == '\n' {
+            *line_no += 1;
+        }
     }
     if last != "\n" {
         input_chars.next();
