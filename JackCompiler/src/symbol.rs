@@ -228,7 +228,7 @@ use super::*;
         let varType = "int";
         let kind = Kind::Local;
         st.define(varName, varType, kind);
-        assert_eq!(st.kind_of("x"), Some(Kind::Local));
+        assert_eq!(st.kind_of("x"), Some("local"));
         assert_eq!(st.type_of("x"), Some(VarType::Int));
         assert_eq!(st.index_of("x"), Some(0));
         st.scope_out();

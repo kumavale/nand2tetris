@@ -200,10 +200,6 @@ fn compile_var_dec(_output: &mut String, tokens: &mut Tokens, st: &mut SymbolTab
 // Compiles a sequence of statements.
 // Does not handle theenclosing "{}".
 fn compile_statements(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    if tokens.next().unwrap().expect_statement().is_err() {
-        return;
-    }
-
     while let Ok(statement) = tokens.next().unwrap().expect_statement() {
         match statement {
             KeywordKind::Let    => compile_let(output, tokens, st),
@@ -361,10 +357,14 @@ fn compile_return(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable
 // Compiles an expression.
 fn compile_expression(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     // TODO AST
+    // Priority: (*/) > (+-)
     let mut ops = Vec::new();
     compile_term(output, tokens, st);
     while let Ok(op) = tokens.next().unwrap().expect_op() {
         tokens.consume();
+        //if op == "add" || op == "sub" {
+        //    compile_expression_mul(output, tokens, st);
+        //}
         ops.push(op.to_string());
         compile_term(output, tokens, st);
     }

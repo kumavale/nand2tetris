@@ -12,11 +12,13 @@ pub fn tokenize(input: &str) -> Tokens {
             ' ' | '\t' | '\r' => (/* skip whitespace */),
             '\n' => line_no += 1,
             '/' => {
-                let next = input_chars.nth(0).unwrap();
-                match next {
-                    '/' => until_ignore(&mut input_chars, "\n", &mut line_no),
-                    '*' => until_ignore(&mut input_chars, "*/", &mut line_no),
-                    _ => tokens.push(Token::new(TokenKind::Symbol(SymbolKind::Slash), line_no)),
+                let input_str = input_chars.as_str();
+                if input_str.starts_with('/') {
+                    until_ignore(&mut input_chars, "\n", &mut line_no);
+                } else if input_str.starts_with('*') {
+                    until_ignore(&mut input_chars, "*/", &mut line_no);
+                } else {
+                    tokens.push(Token::new(TokenKind::Symbol(SymbolKind::Slash), line_no));
                 }
             },
             '{' => tokens.push(Token::new(TokenKind::Symbol(SymbolKind::LBracket),  line_no)),
@@ -309,13 +311,29 @@ mod tests {
         let com1 = "123 // comment\n    456";
         let com2 = "123 /* comment */\n 456";
         let com3 = "123 /** API */\n    456";
-        let expect = Tokens::new(vec![
+        let com4 = "1/2+3 /* */\n   (4+5/6)";
+        let expect123 = Tokens::new(vec![
             Token::new(TokenKind::IntConst(123), 1),
             Token::new(TokenKind::IntConst(456), 2),
         ]);
-        assert_eq!(tokenize(&com1), expect);
-        assert_eq!(tokenize(&com2), expect);
-        assert_eq!(tokenize(&com3), expect);
+        let expect4 = Tokens::new(vec![
+            Token::new(TokenKind::IntConst(1),                1),
+            Token::new(TokenKind::Symbol(SymbolKind::Slash),  1),
+            Token::new(TokenKind::IntConst(2),                1),
+            Token::new(TokenKind::Symbol(SymbolKind::Plus),   1),
+            Token::new(TokenKind::IntConst(3),                1),
+            Token::new(TokenKind::Symbol(SymbolKind::LParen), 2),
+            Token::new(TokenKind::IntConst(4),                2),
+            Token::new(TokenKind::Symbol(SymbolKind::Plus),   2),
+            Token::new(TokenKind::IntConst(5),                2),
+            Token::new(TokenKind::Symbol(SymbolKind::Slash),  2),
+            Token::new(TokenKind::IntConst(6),                2),
+            Token::new(TokenKind::Symbol(SymbolKind::RParen), 2),
+        ]);
+        assert_eq!(tokenize(&com1), expect123);
+        assert_eq!(tokenize(&com2), expect123);
+        assert_eq!(tokenize(&com3), expect123);
+        assert_eq!(tokenize(&com4), expect4);
     }
 }
 
