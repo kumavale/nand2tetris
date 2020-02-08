@@ -175,21 +175,24 @@ fn compile_subroutine_body(output: &mut String, tokens: &mut Tokens, st: &mut Sy
 
 // Return necessary var count
 fn count_var_dec(tokens: &mut Tokens) -> usize {
+    let mut nest0_var_count = 0;
     let mut max_count = 0;
     let mut tokens = tokens.clone();
 
-    if let Some(next) = tokens.next() {
+    while let Some(next) = tokens.next() {
         if next.kind() == TokenKind::Keyword(KeywordKind::Var) {
             tokens.consume();
             let _varType = tokens.consume().unwrap().expect_type().unwrap();
             let _varName = tokens.consume().unwrap().expect_identifier().unwrap();
-            max_count += 1;
+            nest0_var_count += 1;
             while tokens.next().unwrap().expect_symbol(SymbolKind::Comma).is_ok() {
                 tokens.consume();
                 tokens.consume();
-                max_count += 1;
+                nest0_var_count += 1;
             }
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
+        } else {
+            break;
         }
     }
 
@@ -209,10 +212,10 @@ fn count_var_dec(tokens: &mut Tokens) -> usize {
         }
     }
 
-    max_count
+    nest0_var_count + max_count
 }
 fn max_count_var_dec(tokens: &mut Tokens, mut max_count: usize) -> usize {
-    if let Some(next) = tokens.next() {
+    while let Some(next) = tokens.next() {
         if next.kind() == TokenKind::Keyword(KeywordKind::Var) {
             tokens.consume();
             let _varType = tokens.consume().unwrap().expect_type().unwrap();
@@ -224,6 +227,8 @@ fn max_count_var_dec(tokens: &mut Tokens, mut max_count: usize) -> usize {
                 max_count += 1;
             }
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
+        } else {
+            break;
         }
     }
 

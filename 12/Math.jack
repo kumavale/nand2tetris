@@ -8,13 +8,31 @@
  * Note: Jack compilers implement multiplication and division using OS method calls.
  */
 class Math {
+    static Array POW_OF_2;
 
     /** Initializes the library. */
     function void init() {
+        var int i, val;
+        let POW_OF_2 = Array.new(16);
+        let i = 0;
+        let val = 1;
+
+        while (i < 16) {
+            let POW_OF_2[i] = val;
+            let val = val + val;
+            let i = i + 1;
+        }
+
+        return;
     }
 
     /** Returns the absolute value of x. */
     function int abs(int x) {
+        if (x < 0) {
+            return -x;
+        } else {
+            return x;
+        }
     }
 
     /** Returns the product of x and y. 
@@ -23,6 +41,21 @@ class Math {
      *  the Jack expressions x*y and multiply(x,y) return the same value.
      */
     function int multiply(int x, int y) {
+        var int i, sum, shiftedX;
+        let i = 0;
+        let sum = 0;
+        let shiftedX = x;
+
+        while (i < 16) {
+            //if ((POW_OF_2[i] & y) = 1) {
+            if (~((POW_OF_2[i] & y) = 0)) {
+                let sum = sum + shiftedX;
+            }
+            let shiftedX = shiftedX + shiftedX;
+            let i = i + 1;
+        }
+
+        return sum;
     }
 
     /** Returns the integer part of x/y.
@@ -31,17 +64,82 @@ class Math {
      *  the Jack expressions x/y and divide(x,y) return the same value.
      */
     function int divide(int x, int y) {
+        var int q, res;
+        var boolean pos;
+
+        let pos = ((x < 0) = (y < 0));
+        let x = Math.abs(x);
+        let y = Math.abs(y);
+
+        if (y > x) {
+            return 0;
+        }
+
+        let q = Math.divide(x, y+y);
+
+        if ((x-(2*q*y)) < y) {
+            let res = q + q;
+        } else {
+            let res = q + q + 1;
+        }
+
+        if (pos) {
+            return res;
+        } else {
+            return -res;
+        }
     }
 
     /** Returns the integer part of the square root of x. */
     function int sqrt(int x) {
+        var int y, i;
+        let y = 0;
+        let i = 10;
+
+        while (~(i < 0)) {
+            var int tmp, tmpQ;
+            let tmp = y + POW_OF_2[i];
+            let tmpQ = tmp * tmp;
+            if(~(tmpQ > x) & (tmpQ > 0)){
+                let y = tmp;
+            }
+            let i = i - 1;
+        }
+
+        return y;
     }
 
     /** Returns the greater number. */
     function int max(int a, int b) {
+        if (a < b) {
+            return b;
+        } else {
+            return a;
+        }
     }
 
     /** Returns the smaller number. */
     function int min(int a, int b) {
+        if (a < b) {
+            return a;
+        } else {
+            return b;
+        }
+    }
+
+    /** Returns the number of x raised to the power of y. */
+    function int pow(int x, int y) {
+        var int i, z;
+        let z = x;
+
+        if (y = 0) { return 1; }
+
+        while (1 < y) {
+            let z = z * x;
+            let y = y - 1;
+        }
+
+        return z;
     }
 }
+
