@@ -4,7 +4,7 @@
 ///   subroutineDec:  ('constructor'|'function'|'method') ('void'|type) subroutineName
 ///                   '(' parameterList ')' subroutineBody
 ///   parameterList:  ((type varName) (','type varName)*)?
-///  subroutineBody:  '{' varDec* statements '}'
+///  subroutineBody:  '{' varDec? statements '}'
 ///          varDec:  'var' type varName (',' varName)* ';'
 ///       className:  identifier
 ///  subroutineName:  identifier
@@ -13,8 +13,8 @@
 ///      statements:  statement*
 ///       statement:  letStatement | ifStatement | whileStatement | doStatement | returnStatement
 ///    letStatement:  'let' varName ('[' expression ']')? '=' expression ';'
-///     ifStatement:  'if' '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
-///  whileStatement:  'while' '(' expression ')' '{' statements '}'
+///     ifStatement:  'if' '(' expression ')' '{' varDec? statements '}' ('else' '{' statements '}')?
+///  whileStatement:  'while' '(' expression ')' '{' varDec? statements '}'
 ///     doStatement:  'do' subroutineCall ';'
 /// returnStatement:  'return' expression? ';'
 ///
@@ -158,13 +158,14 @@ fn compile_subroutine_body(output: &mut String, tokens: &mut Tokens, st: &mut Sy
     subroutineName: &str, keyword: &str)
 {
     tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
+    let var_count = count_var_dec(tokens);
     compile_var_dec(output, tokens, st);
-    *output += &format!("\nfunction {}.{} {}\n", st.class_name, subroutineName, st.var_count(Kind::Local));
+    *output += &format!("\nfunction {}.{} {}\n", st.class_name, subroutineName, var_count);
     if keyword == "method" {
         *output += "push argument 0\n";
         *output += "pop pointer 0\n";
     } else if keyword == "constructor" {
-        *output += &format!("push constant {}\n", st.var_count(Kind::Field)); // probably Kind::Static too
+        *output += &format!("push constant {}\n", st.var_count(Kind::Field));
         *output += "call Memory.alloc 1\n";
         *output += "pop pointer 0\n";
     }
@@ -172,25 +173,97 @@ fn compile_subroutine_body(output: &mut String, tokens: &mut Tokens, st: &mut Sy
     tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
 }
 
+// Return necessary var count
+fn count_var_dec(tokens: &mut Tokens) -> usize {
+    let mut max_count = 0;
+    let mut tokens = tokens.clone();
+
+    if let Some(next) = tokens.next() {
+        if next.kind() == TokenKind::Keyword(KeywordKind::Var) {
+            tokens.consume();
+            let _varType = tokens.consume().unwrap().expect_type().unwrap();
+            let _varName = tokens.consume().unwrap().expect_identifier().unwrap();
+            max_count += 1;
+            while tokens.next().unwrap().expect_symbol(SymbolKind::Comma).is_ok() {
+                tokens.consume();
+                tokens.consume();
+                max_count += 1;
+            }
+            tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
+        }
+    }
+
+    while let Some(next) = tokens.next() {
+        if next.expect_symbol(SymbolKind::LBracket).is_ok() {
+            break;
+        }
+        match next.kind() {
+            TokenKind::Keyword(KeywordKind::If) |
+            TokenKind::Keyword(KeywordKind::While) => {
+                let count = max_count_var_dec(&mut tokens, 0);
+                if max_count < count {
+                    max_count = count;
+                }
+            }
+            _ => { tokens.consume(); }
+        }
+    }
+
+    max_count
+}
+fn max_count_var_dec(tokens: &mut Tokens, mut max_count: usize) -> usize {
+    if let Some(next) = tokens.next() {
+        if next.kind() == TokenKind::Keyword(KeywordKind::Var) {
+            tokens.consume();
+            let _varType = tokens.consume().unwrap().expect_type().unwrap();
+            let _varName = tokens.consume().unwrap().expect_identifier().unwrap();
+            max_count += 1;
+            while tokens.next().unwrap().expect_symbol(SymbolKind::Comma).is_ok() {
+                tokens.consume();
+                tokens.consume();
+                max_count += 1;
+            }
+            tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
+        }
+    }
+
+    while let Some(next) = tokens.next() {
+        match next.kind() {
+            TokenKind::Symbol(SymbolKind::RBracket) => {
+                tokens.consume();
+                return max_count;
+            },
+            TokenKind::Keyword(KeywordKind::If) |
+            TokenKind::Keyword(KeywordKind::Else) |
+            TokenKind::Keyword(KeywordKind::While) => {
+                while let Some(token) = tokens.consume() {
+                    if token.expect_symbol(SymbolKind::LBracket).is_ok() {
+                        return max_count_var_dec(tokens, max_count);
+                    }
+                }
+            },
+            _ => { tokens.consume(); }
+        }
+    }
+
+    max_count
+}
+
 // Compiles a var declaration.
 fn compile_var_dec(_output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
     while let Some(next) = tokens.next() {
-        if let Ok(keyword) = next.expect_keyword() {
-            if keyword == "var" {
+        if next.kind() == TokenKind::Keyword(KeywordKind::Var) {
+            tokens.consume();
+            let token = tokens.consume().unwrap().clone();
+            let varType = token.expect_type().unwrap();
+            let varName = tokens.consume().unwrap().expect_identifier().unwrap();
+            st.define(varName, varType, Kind::Local);
+            while tokens.next().unwrap().expect_symbol(SymbolKind::Comma).is_ok() {
                 tokens.consume();
-                let token = tokens.consume().unwrap().clone();
-                let varType = token.expect_type().unwrap();
                 let varName = tokens.consume().unwrap().expect_identifier().unwrap();
                 st.define(varName, varType, Kind::Local);
-                while tokens.next().unwrap().expect_symbol(SymbolKind::Comma).is_ok() {
-                    tokens.consume();
-                    let varName = tokens.consume().unwrap().expect_identifier().unwrap();
-                    st.define(varName, varType, Kind::Local);
-                }
-                tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
-            } else {
-                return;
             }
+            tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
         } else {
             return;
         }
@@ -250,6 +323,7 @@ fn compile_if(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
             *output += &format!("not\nif-goto else{}\n", serial);
             tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
             st.scope_in();
+            compile_var_dec(output, tokens, st);
             compile_statements(output, tokens, st);
             tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
             st.scope_out();
@@ -283,6 +357,7 @@ fn compile_while(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable)
             *output += &format!("not\nif-goto whileend{}\n", serial);
             tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
             st.scope_in();
+            compile_var_dec(output, tokens, st);
             compile_statements(output, tokens, st);
             *output += &format!("goto whilebegin{}\n", serial);
             tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();

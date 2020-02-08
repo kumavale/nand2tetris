@@ -199,7 +199,11 @@ impl Tokens {
     }
 
     pub fn next(&self) -> Option<Token> {
-        Some(self.tokens[self.cur].clone())
+        if self.cur < self.len {
+            Some(self.tokens[self.cur].clone())
+        } else {
+            None
+        }
     }
 }
 
