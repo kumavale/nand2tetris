@@ -479,6 +479,7 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
         TokenKind::Identifier(ident) => {
             if tokens.next().unwrap().expect_symbol(SymbolKind::LSquare).is_ok() {
                 // term:   varName '[' expression ']'
+                st.expect_defined(&ident);
                 tokens.consume();
                 compile_expression(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RSquare).unwrap();
@@ -504,8 +505,9 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
                 let subroutineName = token.expect_identifier().unwrap();
                 tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
-                let (ident, nArgs) = if let Some(VarType::ClassName(cn)) = st.type_of(&ident) {
+                let (className, nArgs) = if let Some(VarType::ClassName(cn)) = st.type_of(&ident) {
                     // method
+                    st.expect_defined(&ident);
                     *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
                     (cn, compile_expression_list(output, tokens, st)+1)
                 } else {
@@ -513,8 +515,9 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
                     (ident.to_string(), compile_expression_list(output, tokens, st))
                 };
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
-                *output += &format!("call {}.{} {}\n", ident, subroutineName, nArgs);
+                *output += &format!("call {}.{} {}\n", className, subroutineName, nArgs);
             } else {
+                st.expect_defined(&ident);
                 *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
             }
         },

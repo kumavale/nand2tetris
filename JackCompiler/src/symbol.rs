@@ -148,6 +148,12 @@ impl SymbolTable {
         }
     }
 
+    pub fn expect_defined(&self, ident: &str) {
+        if self.kind_of(&ident).is_none() {
+            panic!("not found in this scope: {}", ident);
+        }
+    }
+
     /// Returns the number of variables of the given kind already defined in the current scope.
     pub fn var_count(&self, kind: Kind) -> usize {
         let mut count = 0;
