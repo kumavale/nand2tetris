@@ -243,7 +243,8 @@ fn max_count_var_dec(tokens: &mut Tokens, mut max_count: usize) -> usize {
             TokenKind::Keyword(KeywordKind::While) => {
                 while let Some(token) = tokens.consume() {
                     if token.expect_symbol(SymbolKind::LBracket).is_ok() {
-                        return max_count_var_dec(tokens, max_count);
+                        max_count += max_count_var_dec(tokens, max_count);
+                        break;
                     }
                 }
             },
@@ -296,6 +297,7 @@ fn compile_let(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
         Ok(_) => {  // determinate "let"
             let token = tokens.next().unwrap();
             let varName = token.expect_identifier().unwrap();
+            st.expect_defined(&varName, token.line_no());
             tokens.consume();
             let ret = if tokens.next().unwrap().expect_symbol(SymbolKind::LSquare).is_ok() {
                 // Array
@@ -395,19 +397,20 @@ fn compile_do(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
             } else {
                 // subroutineCall:  (className | varName) '.' subroutineName '(' expressionList ')'
                 tokens.consume().unwrap().expect_symbol(SymbolKind::Period).unwrap();
-                let token = tokens.next().unwrap();
-                let subroutineName = token.expect_identifier().unwrap();
+                let next = tokens.next().unwrap();
+                let subroutineName = next.expect_identifier().unwrap();
                 tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
-                let (ident, nArgs) = if let Some(VarType::ClassName(cn)) = st.type_of(&ident) {
+                let (className, nArgs) = if let Some(VarType::ClassName(cn)) = st.type_of(&ident) {
                     // method
+                    st.expect_defined(&ident, token.line_no());
                     *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
                     (cn, compile_expression_list(output, tokens, st)+1)
                 } else {
                     // function
                     (ident.to_string(), compile_expression_list(output, tokens, st))
                 };
-                *output += &format!("call {}.{} {}\n", ident, subroutineName, nArgs);
+                *output += &format!("call {}.{} {}\n", className, subroutineName, nArgs);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
             }
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
@@ -460,7 +463,7 @@ fn compile_expression(output: &mut String, tokens: &mut Tokens, st: &mut SymbolT
 // suffices to distinguish between the possibilities.
 // Any other token is not part of this term and should not be advanced over.
 fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
-    let token = tokens.consume().unwrap();
+    let token = tokens.consume().unwrap().clone();
     match token.kind() {
         TokenKind::IntConst(int) => *output += &format!("push constant {}\n", int),
         TokenKind::StringConst(string) => {
@@ -484,7 +487,7 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
         TokenKind::Identifier(ident) => {
             if tokens.next().unwrap().expect_symbol(SymbolKind::LSquare).is_ok() {
                 // term:   varName '[' expression ']'
-                st.expect_defined(&ident);
+                st.expect_defined(&ident, token.line_no());
                 tokens.consume();
                 compile_expression(output, tokens, st);
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RSquare).unwrap();
@@ -506,13 +509,13 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
             } else if tokens.next().unwrap().expect_symbol(SymbolKind::Period).is_ok() {
                 // subroutineCall:  (className | varName) '.' subroutineName '(' expressionList ')'
                 tokens.consume();
-                let token = tokens.next().unwrap();
-                let subroutineName = token.expect_identifier().unwrap();
+                let next = tokens.next().unwrap();
+                let subroutineName = next.expect_identifier().unwrap();
                 tokens.consume();
                 tokens.consume().unwrap().expect_symbol(SymbolKind::LParen).unwrap();
                 let (className, nArgs) = if let Some(VarType::ClassName(cn)) = st.type_of(&ident) {
                     // method
-                    st.expect_defined(&ident);
+                    st.expect_defined(&ident, token.line_no());
                     *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
                     (cn, compile_expression_list(output, tokens, st)+1)
                 } else {
@@ -522,7 +525,7 @@ fn compile_term(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) 
                 tokens.consume().unwrap().expect_symbol(SymbolKind::RParen).unwrap();
                 *output += &format!("call {}.{} {}\n", className, subroutineName, nArgs);
             } else {
-                st.expect_defined(&ident);
+                st.expect_defined(&ident, token.line_no());
                 *output += &format!("push {} {}\n", st.kind_of(&ident).unwrap(), st.index_of(&ident).unwrap());
             }
         },

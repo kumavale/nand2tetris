@@ -148,9 +148,9 @@ impl SymbolTable {
         }
     }
 
-    pub fn expect_defined(&self, ident: &str) {
+    pub fn expect_defined(&self, ident: &str, line_no: u32) {
         if self.kind_of(&ident).is_none() {
-            panic!("not found in this scope: {}", ident);
+            panic!("{}: not found in this scope: {}", line_no, ident);
         }
     }
 
