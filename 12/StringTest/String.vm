@@ -114,7 +114,7 @@ label ifend2
 push constant 0
 return
 
-function String.intValue 11
+function String.intValue 4
 push argument 0
 pop pointer 0
 push constant 0
@@ -187,7 +187,7 @@ push local 1
 return
 label ifend6
 
-function String.setInt 4
+function String.setInt 2
 push argument 0
 pop pointer 0
 push constant 0

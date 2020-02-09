@@ -13,7 +13,7 @@
 ///      statements:  statement*
 ///       statement:  letStatement | ifStatement | whileStatement | doStatement | returnStatement
 ///    letStatement:  'let' varName ('[' expression ']')? '=' expression ';'
-///     ifStatement:  'if' '(' expression ')' '{' varDec? statements '}' ('else' '{' statements '}')?
+///     ifStatement:  'if' '(' expression ')' '{' varDec? statements '}' ('else' '{' varDec? statements '}')?
 ///  whileStatement:  'while' '(' expression ')' '{' varDec? statements '}'
 ///     doStatement:  'do' subroutineCall ';'
 /// returnStatement:  'return' expression? ';'
@@ -202,8 +202,9 @@ fn count_var_dec(tokens: &mut Tokens) -> usize {
         }
         match next.kind() {
             TokenKind::Keyword(KeywordKind::If) |
+            TokenKind::Keyword(KeywordKind::Else) |
             TokenKind::Keyword(KeywordKind::While) => {
-                let count = max_count_var_dec(&mut tokens, 0);
+                let count = max_count_var_dec(&mut tokens);
                 if max_count < count {
                     max_count = count;
                 }
@@ -214,17 +215,19 @@ fn count_var_dec(tokens: &mut Tokens) -> usize {
 
     nest0_var_count + max_count
 }
-fn max_count_var_dec(tokens: &mut Tokens, mut max_count: usize) -> usize {
+fn max_count_var_dec(tokens: &mut Tokens) -> usize {
+    let mut count = 0;
+
     while let Some(next) = tokens.next() {
         if next.kind() == TokenKind::Keyword(KeywordKind::Var) {
             tokens.consume();
             let _varType = tokens.consume().unwrap().expect_type().unwrap();
             let _varName = tokens.consume().unwrap().expect_identifier().unwrap();
-            max_count += 1;
+            count += 1;
             while tokens.next().unwrap().expect_symbol(SymbolKind::Comma).is_ok() {
                 tokens.consume();
                 tokens.consume();
-                max_count += 1;
+                count += 1;
             }
             tokens.consume().unwrap().expect_symbol(SymbolKind::Semicolon).unwrap();
         } else {
@@ -236,14 +239,14 @@ fn max_count_var_dec(tokens: &mut Tokens, mut max_count: usize) -> usize {
         match next.kind() {
             TokenKind::Symbol(SymbolKind::RBracket) => {
                 tokens.consume();
-                return max_count;
+                return count;
             },
             TokenKind::Keyword(KeywordKind::If) |
             TokenKind::Keyword(KeywordKind::Else) |
             TokenKind::Keyword(KeywordKind::While) => {
                 while let Some(token) = tokens.consume() {
                     if token.expect_symbol(SymbolKind::LBracket).is_ok() {
-                        max_count += max_count_var_dec(tokens, max_count);
+                        count += max_count_var_dec(tokens);
                         break;
                     }
                 }
@@ -252,7 +255,7 @@ fn max_count_var_dec(tokens: &mut Tokens, mut max_count: usize) -> usize {
         }
     }
 
-    max_count
+    count
 }
 
 // Compiles a var declaration.
@@ -341,6 +344,7 @@ fn compile_if(output: &mut String, tokens: &mut Tokens, st: &mut SymbolTable) {
                     tokens.consume();
                     tokens.consume().unwrap().expect_symbol(SymbolKind::LBracket).unwrap();
                     st.scope_in();
+                    compile_var_dec(output, tokens, st);
                     compile_statements(output, tokens, st);
                     tokens.consume().unwrap().expect_symbol(SymbolKind::RBracket).unwrap();
                     st.scope_out();
