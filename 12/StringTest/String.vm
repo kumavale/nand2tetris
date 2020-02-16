@@ -187,66 +187,58 @@ push local 1
 return
 label ifend6
 
-function String.setInt 2
+function String.setInt 3
 push argument 0
 pop pointer 0
-push constant 0
-pop this 1
 push argument 1
 push constant 0
 lt
 not
 if-goto else7
-push argument 1
-neg
-pop argument 1
 push pointer 0
 push constant 45
 call String.appendChar 2
 pop temp 0
+push argument 1
+neg
+pop argument 1
 goto ifend7
 label else7
 label ifend7
-label whilebegin8
-push constant 0
 push argument 1
-lt
-not
-if-goto whileend8
-push constant 1
-pop local 1
-push argument 1
-pop local 0
-label whilebegin9
-push constant 9
-push local 0
-lt
-not
-if-goto whileend9
-push local 0
 push constant 10
 call Math.divide 2
-pop local 0
+pop local 1
+push argument 1
 push local 1
 push constant 10
 call Math.multiply 2
-pop local 1
-goto whilebegin9
-label whileend9
-push argument 1
-push local 1
-push local 0
-call Math.multiply 2
 sub
-pop argument 1
-push pointer 0
+pop local 0
 push local 0
 push constant 48
 add
+pop local 2
+push argument 1
+push constant 10
+lt
+not
+if-goto else8
+push pointer 0
+push local 2
 call String.appendChar 2
 pop temp 0
-goto whilebegin8
-label whileend8
+goto ifend8
+label else8
+push pointer 0
+push local 1
+call String.setInt 2
+pop temp 0
+push pointer 0
+push local 2
+call String.appendChar 2
+pop temp 0
+label ifend8
 push constant 0
 return
 

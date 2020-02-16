@@ -99,25 +99,22 @@ class String {
 
     /** Sets this string to hold a representation of the given value. */
     method void setInt(int val) {
-        let length = 0;
+        var int last_digit, n;
+        var char c;
 
         if (val < 0) {
             let val = -val;
             do appendChar(45);
         }
+        let n = val / 10;
+        let last_digit = val - (n*10);
+        let c = last_digit + 48;
 
-        while (0 < val) {
-            var int first_digit, exp;
-            let exp = 1;
-            let first_digit = val;
-
-            while (9 < first_digit) {
-                let first_digit = first_digit / 10;
-                let exp = exp * 10;
-            }
-
-            let val = val - (exp * first_digit);
-            do appendChar(first_digit + 48);
+        if (val < 10) {
+            do appendChar(c);
+        } else {
+            do setInt(n);
+            do appendChar(c);
         }
 
         return;
