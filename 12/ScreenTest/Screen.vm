@@ -56,6 +56,10 @@ pop temp 0
 pop pointer 1
 push temp 0
 pop that 0
+push local 0
+push constant 1
+add
+pop local 0
 goto whilebegin1
 label whileend1
 push constant 0
@@ -77,12 +81,8 @@ call Math.divide 2
 add
 pop local 0
 push argument 0
-push argument 0
-push constant 16
-call Math.divide 2
-push constant 16
-call Math.multiply 2
-sub
+push constant 15
+and
 pop local 1
 push local 1
 push static 1
@@ -128,7 +128,7 @@ label ifend2
 push constant 0
 return
 
-function Screen.drawLine 8
+function Screen.drawLine 9
 push argument 3
 push argument 1
 sub
@@ -143,138 +143,137 @@ push local 0
 not
 if-goto else3
 push argument 0
-pop local 7
+pop local 8
 push argument 1
 pop argument 0
-push local 7
+push local 8
 pop argument 1
 push argument 2
-pop local 7
+pop local 8
 push argument 3
 pop argument 2
-push local 7
+push local 8
 pop argument 3
 goto ifend3
 label else3
 label ifend3
-push argument 0
-push argument 2
-gt
-not
-if-goto else4
-push argument 0
-pop local 7
-push argument 2
-pop argument 0
-push local 7
-pop argument 2
-push argument 1
-pop local 7
-push argument 3
-pop argument 1
-push local 7
-pop argument 3
-goto ifend4
-label else4
-label ifend4
 push argument 2
 push argument 0
 sub
-pop local 1
+call Math.abs 1
+pop local 3
 push argument 3
 push argument 1
 sub
 call Math.abs 1
-pop local 2
-push local 1
+pop local 4
+push local 3
 push constant 2
 call Math.divide 2
-pop local 3
+pop local 5
 push argument 1
-pop local 6
+pop local 2
+push argument 0
+push argument 2
+lt
+not
+if-goto else4
+push constant 1
+pop local 7
+goto ifend4
+label else4
+push constant 1
+neg
+pop local 7
+label ifend4
 push argument 1
 push argument 3
 lt
 not
 if-goto else5
 push constant 1
-pop local 4
+pop local 6
 goto ifend5
 label else5
 push constant 1
 neg
-pop local 4
+pop local 6
 label ifend5
 push argument 0
-pop local 5
+pop local 1
 label whilebegin6
-push local 5
+push local 1
 push argument 2
-lt
+eq
+not
 not
 if-goto whileend6
 push local 0
 not
 if-goto else7
-push local 6
-push local 5
+push local 2
+push local 1
 call Screen.drawPixel 2
 pop temp 0
 goto ifend7
 label else7
-push local 5
-push local 6
+push local 1
+push local 2
 call Screen.drawPixel 2
 pop temp 0
 label ifend7
-push local 3
-push local 2
+push local 5
+push local 4
 sub
-pop local 3
-push local 3
+pop local 5
+push local 5
 push constant 0
 lt
 not
 if-goto else8
+push local 2
 push local 6
-push local 4
 add
-pop local 6
+pop local 2
+push local 5
 push local 3
-push local 1
 add
-pop local 3
+pop local 5
 goto ifend8
 label else8
 label ifend8
-push local 5
-push constant 1
+push local 1
+push local 7
 add
-pop local 5
+pop local 1
 goto whilebegin6
 label whileend6
 push constant 0
 return
 
-function Screen.drawRectangle 1
-push argument 1
+function Screen.drawRectangle 2
+push argument 2
+push constant 1
+add
 pop local 0
+push argument 1
+pop local 1
 label whilebegin9
-push local 0
+push local 1
 push argument 3
 lt
 not
 if-goto whileend9
 push argument 0
+push local 1
 push local 0
-push argument 2
-push local 0
+push local 1
 call Screen.drawLine 4
 pop temp 0
-push local 0
+push local 1
 push constant 1
 add
-pop local 0
+pop local 1
 goto whilebegin9
 label whileend9
 push constant 0

@@ -23,7 +23,7 @@ class Screen {
         let i = 0;
         let val = 1;
         let pow_of_2 = Array.new(16);
-        while (i<16) {
+        while (i < 16) {
             let pow_of_2[i] = val;
             let val = val + val;
             let i = i + 1;
@@ -38,6 +38,7 @@ class Screen {
         let i = 0;
         while (i < 8192) {  // 512*256/16
             let screen[i] = 0;
+            let i = i + 1;
         }
 
         return;
@@ -55,7 +56,7 @@ class Screen {
     function void drawPixel(int x, int y) {
         var int address, bit, mask;
         let address = (y*32) + (x/16);
-        let bit = x - ((x/16)*16);  // bit = x % 16
+        let bit = x & 15;  // bit = x % 16
         let mask = pow_of_2[bit];
 
         if (color) {
@@ -71,10 +72,11 @@ class Screen {
     /** Bresenham's line algorithm */
     function void drawLine(int x1, int y1, int x2, int y2) {
         var boolean steep;
-        var int dx, dy, error, ystep, x, y, tmp;
+        var int x, y, dx, dy, err, ystep, inc;
         let steep = Math.abs(y2 - y1) > Math.abs(x2 - x1);
 
         if (steep) {
+            var int tmp;
             // swap(x1, y1);
             let tmp = x1;
             let x1 = y1;
@@ -84,20 +86,17 @@ class Screen {
             let x2 = y2;
             let y2 = tmp;
         }
-        if (x1 > x2) {
-            // swap(x1, x2);
-            let tmp = x1;
-            let x1 = x2;
-            let x2 = tmp;
-            // swap(y1, y2);
-            let tmp = y1;
-            let y1 = y2;
-            let y2 = tmp;
-        }
-        let dx = x2 - x1;
+
+        let dx = Math.abs(x2 - x1);
         let dy = Math.abs(y2 - y1);
-        let error = dx / 2;
+        let err = dx / 2;
         let y = y1;
+
+        if (x1 < x2) {
+            let inc = 1;
+        } else {
+            let inc = -1;
+        }
 
         if (y1 < y2) {
             let ystep = 1;
@@ -106,18 +105,18 @@ class Screen {
         }
 
         let x = x1;
-        while (x < x2) {
+        while (~(x = x2)) {
             if (steep) {
                 do Screen.drawPixel(y, x);
             } else {
                 do Screen.drawPixel(x, y);
             }
-            let error = error - dy;
-            if (error < 0) {
+            let err = err - dy;
+            if (err < 0) {
                 let y = y + ystep;
-                let error = error + dx;
+                let err = err + dx;
             }
-            let x = x + 1;
+            let x = x + inc;
         }
 
         return;
@@ -126,11 +125,12 @@ class Screen {
     /** Draws a filled rectangle whose top left corner is (x1, y1)
      * and bottom right corner is (x2,y2), using the current color. */
     function void drawRectangle(int x1, int y1, int x2, int y2) {
-        var int dy;
+        var int dx, dy;
+        let dx = x2 + 1;
         let dy = y1;
 
         while (dy < y2) {
-            do Screen.drawLine(x1, dy, x2, dy);
+            do Screen.drawLine(x1, dy, dx, dy);
             let dy = dy + 1;
         }
 
@@ -152,3 +152,4 @@ class Screen {
         return;
     }
 }
+
