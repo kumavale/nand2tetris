@@ -1,0 +1,1092 @@
+
+function Main.main 0
+call Main.init 0
+pop temp 0
+call Main.gamerun 0
+pop temp 0
+call Main.draw 0
+pop temp 0
+push constant 10
+push constant 2
+call Output.moveCursor 2
+pop temp 0
+push constant 8
+call String.new 1
+push constant 71
+call String.appendChar 2
+push constant 65
+call String.appendChar 2
+push constant 77
+call String.appendChar 2
+push constant 69
+call String.appendChar 2
+push constant 79
+call String.appendChar 2
+push constant 86
+call String.appendChar 2
+push constant 69
+call String.appendChar 2
+push constant 82
+call String.appendChar 2
+call Output.printString 1
+pop temp 0
+push constant 0
+return
+
+function Main.init 4
+push constant 16
+call Array.new 1
+pop static 4
+push constant 0
+pop local 2
+push constant 1
+pop local 3
+label whilebegin0
+push local 2
+push constant 16
+lt
+not
+if-goto whileend0
+push local 2
+push static 4
+add
+push local 3
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push local 3
+push local 3
+add
+pop local 3
+push local 2
+push constant 1
+add
+pop local 2
+goto whilebegin0
+label whileend0
+push constant 10
+push constant 2
+add
+pop static 0
+push constant 20
+push constant 2
+add
+pop static 1
+push constant 7
+pop static 2
+push static 1
+call Array.new 1
+pop static 5
+push static 1
+call Array.new 1
+pop static 6
+push constant 1
+pop local 1
+label whilebegin1
+push local 1
+push static 1
+lt
+not
+if-goto whileend1
+push local 1
+push static 5
+add
+push constant 2049
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push local 1
+push constant 1
+add
+pop local 1
+goto whilebegin1
+label whileend1
+push static 1
+push constant 1
+sub
+push static 5
+add
+push constant 1
+neg
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+call Array.new 1
+pop static 3
+push constant 0
+push static 3
+add
+push constant 3840
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 1
+push static 3
+add
+push constant 1632
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 2
+push static 3
+add
+push constant 1728
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 3
+push static 3
+add
+push constant 3168
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 4
+push static 3
+add
+push constant 2272
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 5
+push static 3
+add
+push constant 736
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 6
+push static 3
+add
+push constant 1248
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 42
+call Utils.srand 1
+pop temp 0
+call Main.init_mino 0
+pop temp 0
+push constant 0
+return
+
+function Main.draw 2
+push constant 0
+push constant 0
+call Output.moveCursor 2
+pop temp 0
+push static 6
+push static 5
+push static 1
+call Utils.memcpy 3
+pop temp 0
+push static 8
+push static 6
+add
+push static 8
+push static 6
+add
+pop pointer 1
+push that 0
+push static 9
+push constant 4096
+neg
+and
+push constant 4096
+call Math.divide 2
+push constant 7
+push static 7
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 8
+push constant 1
+add
+push static 6
+add
+push static 8
+push constant 1
+add
+push static 6
+add
+pop pointer 1
+push that 0
+push static 9
+push constant 3840
+and
+push constant 256
+call Math.divide 2
+push constant 7
+push static 7
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 8
+push constant 2
+add
+push static 6
+add
+push static 8
+push constant 2
+add
+push static 6
+add
+pop pointer 1
+push that 0
+push static 9
+push constant 240
+and
+push constant 16
+call Math.divide 2
+push constant 7
+push static 7
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 8
+push constant 3
+add
+push static 6
+add
+push static 8
+push constant 3
+add
+push static 6
+add
+pop pointer 1
+push that 0
+push static 9
+push constant 15
+and
+push constant 7
+push static 7
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 0
+pop local 1
+label whilebegin2
+push local 1
+push static 1
+lt
+not
+if-goto whileend2
+push static 0
+pop local 0
+label whilebegin3
+push constant 0
+push local 0
+lt
+not
+if-goto whileend3
+push local 0
+push constant 1
+sub
+pop local 0
+push local 1
+push static 6
+add
+pop pointer 1
+push that 0
+push local 0
+push static 4
+add
+pop pointer 1
+push that 0
+and
+push constant 0
+eq
+not
+not
+if-goto else4
+push constant 35
+call Output.printChar 1
+pop temp 0
+goto ifend4
+label else4
+push constant 32
+call Output.printChar 1
+pop temp 0
+label ifend4
+goto whilebegin3
+label whileend3
+call Output.println 0
+pop temp 0
+push local 1
+push constant 1
+add
+pop local 1
+goto whilebegin2
+label whileend2
+push constant 0
+return
+
+function Main.is_collision 0
+push constant 7
+push argument 0
+lt
+not
+if-goto else5
+push constant 1
+neg
+return
+goto ifend5
+label else5
+label ifend5
+push argument 1
+push static 5
+add
+pop pointer 1
+push that 0
+push argument 2
+push constant 4096
+neg
+and
+push constant 4096
+call Math.divide 2
+push constant 7
+push argument 0
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+and
+push argument 1
+push constant 1
+add
+push static 5
+add
+pop pointer 1
+push that 0
+push argument 2
+push constant 3840
+and
+push constant 256
+call Math.divide 2
+push constant 7
+push argument 0
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+and
+push argument 1
+push constant 2
+add
+push static 5
+add
+pop pointer 1
+push that 0
+push argument 2
+push constant 240
+and
+push constant 16
+call Math.divide 2
+push constant 7
+push argument 0
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+and
+push argument 1
+push constant 3
+add
+push static 5
+add
+pop pointer 1
+push that 0
+push argument 2
+push constant 15
+and
+push constant 7
+push argument 0
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+and
+or
+or
+or
+push constant 0
+eq
+not
+return
+
+function Main.rotaion 3
+push constant 0
+pop local 1
+push constant 16
+call Array.new 1
+pop local 2
+push constant 0
+pop local 0
+label whilebegin6
+push local 0
+push constant 16
+lt
+not
+if-goto whileend6
+push static 9
+push local 0
+push static 4
+add
+pop pointer 1
+push that 0
+and
+push constant 0
+eq
+not
+not
+if-goto else7
+push local 0
+push local 2
+add
+push constant 1
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+goto ifend7
+label else7
+push local 0
+push local 2
+add
+push constant 0
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+label ifend7
+push local 0
+push constant 1
+add
+pop local 0
+goto whilebegin6
+label whileend6
+push constant 0
+pop local 0
+label whilebegin8
+push local 0
+push constant 4
+lt
+not
+if-goto whileend8
+push local 1
+push local 0
+push constant 4
+call Math.multiply 2
+push constant 0
+add
+push local 2
+add
+pop pointer 1
+push that 0
+push constant 3
+push local 0
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop local 1
+push local 1
+push local 0
+push constant 4
+call Math.multiply 2
+push constant 1
+add
+push local 2
+add
+pop pointer 1
+push that 0
+push constant 7
+push local 0
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop local 1
+push local 1
+push local 0
+push constant 4
+call Math.multiply 2
+push constant 2
+add
+push local 2
+add
+pop pointer 1
+push that 0
+push constant 11
+push local 0
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop local 1
+push local 1
+push local 0
+push constant 4
+call Math.multiply 2
+push constant 3
+add
+push local 2
+add
+pop pointer 1
+push that 0
+push constant 15
+push local 0
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop local 1
+push local 0
+push constant 1
+add
+pop local 0
+goto whilebegin8
+label whileend8
+push local 1
+return
+
+function Main.init_mino 1
+push constant 4
+pop static 7
+push constant 0
+pop static 8
+call Utils.rand 0
+call Math.abs 1
+pop local 0
+push local 0
+push static 2
+push local 0
+push static 2
+call Math.divide 2
+call Math.multiply 2
+sub
+push static 3
+add
+pop pointer 1
+push that 0
+pop static 9
+push constant 0
+return
+
+function Main.judge 0
+push constant 1
+push static 5
+add
+pop pointer 1
+push that 0
+push constant 2049
+eq
+return
+
+function Main.landing 3
+push static 8
+push static 5
+add
+push static 8
+push static 5
+add
+pop pointer 1
+push that 0
+push static 9
+push constant 4096
+neg
+and
+push constant 4096
+call Math.divide 2
+push constant 7
+push static 7
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 8
+push constant 1
+add
+push static 5
+add
+push static 8
+push constant 1
+add
+push static 5
+add
+pop pointer 1
+push that 0
+push static 9
+push constant 3840
+and
+push constant 256
+call Math.divide 2
+push constant 7
+push static 7
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 8
+push constant 2
+add
+push static 5
+add
+push static 8
+push constant 2
+add
+push static 5
+add
+pop pointer 1
+push that 0
+push static 9
+push constant 240
+and
+push constant 16
+call Math.divide 2
+push constant 7
+push static 7
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 8
+push constant 3
+add
+push static 5
+add
+push static 8
+push constant 3
+add
+push static 5
+add
+pop pointer 1
+push that 0
+push static 9
+push constant 15
+and
+push constant 7
+push static 7
+sub
+push static 4
+add
+pop pointer 1
+push that 0
+call Math.multiply 2
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 1
+push constant 2
+sub
+pop local 1
+label whilebegin9
+push constant 0
+push local 1
+lt
+not
+if-goto whileend9
+push local 1
+push static 5
+add
+pop pointer 1
+push that 0
+push constant 4095
+eq
+not
+if-goto else10
+push local 1
+pop local 2
+label whilebegin11
+push constant 0
+push local 2
+lt
+not
+if-goto whileend11
+push local 2
+push static 5
+add
+push local 2
+push constant 1
+sub
+push static 5
+add
+pop pointer 1
+push that 0
+push constant 2049
+or
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push local 2
+push constant 1
+sub
+pop local 2
+goto whilebegin11
+label whileend11
+goto ifend10
+label else10
+push local 1
+push constant 1
+sub
+pop local 1
+label ifend10
+goto whilebegin9
+label whileend9
+call Main.judge 0
+pop local 0
+call Main.init_mino 0
+pop temp 0
+push local 0
+return
+
+function Main.gamerun 3
+push constant 0
+pop local 0
+push constant 0
+pop local 1
+label whilebegin12
+push constant 1
+neg
+not
+if-goto whileend12
+label whilebegin13
+push local 1
+push constant 0
+eq
+not
+if-goto whileend13
+call Main.draw 0
+pop temp 0
+call Keyboard.keyPressed 0
+pop local 1
+push local 0
+push constant 50
+eq
+not
+if-goto else14
+push constant 0
+pop local 0
+push static 7
+push static 8
+push constant 1
+add
+push static 9
+call Main.is_collision 3
+not
+not
+if-goto else15
+push static 8
+push constant 1
+add
+pop static 8
+goto ifend15
+label else15
+call Main.landing 0
+not
+not
+if-goto else16
+push constant 0
+return
+goto ifend16
+label else16
+label ifend16
+label ifend15
+goto ifend14
+label else14
+label ifend14
+push constant 10
+call Sys.wait 1
+pop temp 0
+push local 0
+push constant 1
+add
+pop local 0
+goto whilebegin13
+label whileend13
+push local 1
+push constant 130
+eq
+not
+if-goto else17
+push static 7
+push constant 1
+sub
+push static 8
+push static 9
+call Main.is_collision 3
+not
+not
+if-goto else18
+push static 7
+push constant 1
+sub
+pop static 7
+goto ifend18
+label else18
+label ifend18
+goto ifend17
+label else17
+push local 1
+push constant 132
+eq
+not
+if-goto else19
+push static 7
+push constant 1
+add
+push static 8
+push static 9
+call Main.is_collision 3
+not
+not
+if-goto else20
+push static 7
+push constant 1
+add
+pop static 7
+goto ifend20
+label else20
+label ifend20
+goto ifend19
+label else19
+push local 1
+push constant 131
+eq
+not
+if-goto else21
+label whilebegin22
+push static 7
+push static 8
+push constant 1
+add
+push static 9
+call Main.is_collision 3
+not
+not
+if-goto whileend22
+push static 8
+push constant 1
+add
+pop static 8
+goto whilebegin22
+label whileend22
+push constant 0
+pop local 0
+call Main.landing 0
+not
+not
+if-goto else23
+push constant 0
+return
+goto ifend23
+label else23
+label ifend23
+goto ifend21
+label else21
+push local 1
+push constant 133
+eq
+not
+if-goto else24
+push static 7
+push static 8
+push constant 1
+add
+push static 9
+call Main.is_collision 3
+not
+not
+if-goto else25
+push static 8
+push constant 1
+add
+pop static 8
+goto ifend25
+label else25
+push constant 0
+pop local 0
+call Main.landing 0
+not
+not
+if-goto else26
+push constant 0
+return
+goto ifend26
+label else26
+label ifend26
+label ifend25
+goto ifend24
+label else24
+push local 1
+push constant 32
+eq
+not
+if-goto else27
+call Main.rotaion 0
+pop local 2
+push static 7
+push static 8
+push local 2
+call Main.is_collision 3
+not
+not
+if-goto else28
+push local 2
+pop static 9
+goto ifend28
+label else28
+label ifend28
+goto ifend27
+label else27
+label ifend27
+label ifend24
+label ifend21
+label ifend19
+label ifend17
+label whilebegin29
+push local 1
+push constant 0
+eq
+not
+not
+if-goto whileend29
+call Main.draw 0
+pop temp 0
+call Keyboard.keyPressed 0
+pop local 1
+push local 0
+push constant 50
+eq
+not
+if-goto else30
+push constant 0
+pop local 0
+push static 7
+push static 8
+push constant 1
+add
+push static 9
+call Main.is_collision 3
+not
+not
+if-goto else31
+push static 8
+push constant 1
+add
+pop static 8
+goto ifend31
+label else31
+call Main.landing 0
+not
+not
+if-goto else32
+push constant 0
+return
+goto ifend32
+label else32
+label ifend32
+label ifend31
+goto ifend30
+label else30
+label ifend30
+push constant 10
+call Sys.wait 1
+pop temp 0
+push local 0
+push constant 1
+add
+pop local 0
+goto whilebegin29
+label whileend29
+goto whilebegin12
+label whileend12
+push constant 0
+return

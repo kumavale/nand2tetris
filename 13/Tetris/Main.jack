@@ -1,0 +1,292 @@
+
+/**
+ * The main class of the Tetris game.
+ */
+class Main {
+
+    // Constant
+    static int FIELD_WIDTH, FIELD_HEIGHT, MINO_TYPE_MAX;
+    static Array MINOS;
+    static Array pow_of_2;
+
+    static Array f, f_buf;  // field
+    static int mino_x, mino_y, mino_shape;
+
+    /** Initializes a Tetris game and starts running it. */
+    function void main() {
+        do init();
+        do gamerun();
+        do draw();
+        do Output.moveCursor(10, 2);
+        do Output.printString("GAMEOVER");
+
+        return;
+    }
+
+    function void init() {
+        var int x, y;
+        var int i, val;
+
+        // Define power of 2
+        let pow_of_2 = Array.new(16);
+        let i = 0;
+        let val = 1;
+        while (i < 16) {
+            let pow_of_2[i] = val;
+            let val = val + val;
+            let i = i + 1;
+        }
+
+        // Constant
+        let FIELD_WIDTH   = 10 + 2;
+        let FIELD_HEIGHT  = 20 + 2;
+        let MINO_TYPE_MAX = 7;
+
+        // Field
+        let f     = Array.new(FIELD_HEIGHT);
+        let f_buf = Array.new(FIELD_HEIGHT);
+        let y = 1;
+        while (y < FIELD_HEIGHT) {
+            let f[y] = 2049;  // 2048|1
+            let y = y + 1;
+        }
+        let f[FIELD_HEIGHT-1] = -1;
+
+        // Mino shapes
+        let MINOS = Array.new(MINO_TYPE_MAX);
+        let MINOS[0] = 3840;  // I 00001l1100000000
+        let MINOS[1] = 1632;  // O 0000011001100000
+        let MINOS[2] = 1728;  // S 0000011011000000
+        let MINOS[3] = 3168;  // Z 0000110001100000
+        let MINOS[4] = 2272;  // J 0000100011100000
+        let MINOS[5] =  736;  // L 0000001011100000
+        let MINOS[6] = 1248;  // T 0000010011100000
+
+        // Initialize randum seed
+        do Utils.srand(42);
+
+        // Initialize mino
+        do init_mino();
+
+        return;
+    }
+
+    function void draw() {
+        var int x, y;
+
+        // Crear screen
+        //do Screen.clearScreen();
+        do Output.moveCursor(0, 0);
+
+        // Write current mino
+        do Utils.memcpy(f_buf, f, FIELD_HEIGHT);
+        let f_buf[mino_y]   = f_buf[mino_y]   | (((mino_shape&-4096)/4096) * pow_of_2[7-mino_x]);
+        let f_buf[mino_y+1] = f_buf[mino_y+1] | (((mino_shape& 3840)/ 256) * pow_of_2[7-mino_x]);
+        let f_buf[mino_y+2] = f_buf[mino_y+2] | (((mino_shape&  240)/  16) * pow_of_2[7-mino_x]);
+        let f_buf[mino_y+3] = f_buf[mino_y+3] | (((mino_shape&   15))      * pow_of_2[7-mino_x]);
+
+        let y = 0;
+        while (y < FIELD_HEIGHT) {
+            let x = FIELD_WIDTH;
+            while (0 < x) {
+                let x = x - 1;
+                if (~((f_buf[y]&pow_of_2[x]) = 0)) {
+                    do Output.printChar(35);  // TODO drawRectangle
+                } else {
+                    do Output.printChar(32);  // TODO drawRectangle
+                }
+            }
+            do Output.println();
+            let y = y + 1;
+        }
+
+        return;
+    }
+
+    function boolean is_collision(int x, int y, int s) {
+        if (7 < x) { return true; }
+        return ~(((f[y]   & (((s&-4096)/4096) * pow_of_2[7-x])) |
+                  (f[y+1] & (((s& 3840)/ 256) * pow_of_2[7-x])) |
+                  (f[y+2] & (((s&  240)/  16) * pow_of_2[7-x])) |
+                  (f[y+3] & (((s&   15))      * pow_of_2[7-x]))) = 0);
+    }
+
+    /** Right rotation */
+    function int rotaion() {
+        var int i, new_shape;
+        var Array buf;
+        let new_shape = 0;
+        let buf = Array.new(16);
+
+        let i = 0;
+        while (i < 16) {
+            if (~((mino_shape & pow_of_2[i]) = 0)) {
+                let buf[i] = 1;
+            } else {
+                let buf[i] = 0;
+            }
+            let i = i + 1;
+        }
+
+        let i = 0;
+        while (i < 4) {
+            let new_shape = new_shape | (buf[(i*4)+0] * pow_of_2[ 3-i]);
+            let new_shape = new_shape | (buf[(i*4)+1] * pow_of_2[ 7-i]);
+            let new_shape = new_shape | (buf[(i*4)+2] * pow_of_2[11-i]);
+            let new_shape = new_shape | (buf[(i*4)+3] * pow_of_2[15-i]);
+            let i = i + 1;
+        }
+
+        return new_shape;
+    }
+
+    function void init_mino() {
+        var int r;
+        let mino_x = 4;
+        let mino_y = 0;
+
+        let r = Math.abs(Utils.rand());
+        let mino_shape = MINOS[r - (MINO_TYPE_MAX * (r / MINO_TYPE_MAX))];
+
+        return;
+    }
+
+    /** Return if gameover then true else false. */
+    function boolean judge() {
+        return f[1] = 2049;
+    }
+
+    function int landing() {
+        var boolean landed, y;
+
+        // Fix to field
+        let f[mino_y]   = f[mino_y]   | (((mino_shape&-4096)/4096) * pow_of_2[7-mino_x]);
+        let f[mino_y+1] = f[mino_y+1] | (((mino_shape& 3840)/ 256) * pow_of_2[7-mino_x]);
+        let f[mino_y+2] = f[mino_y+2] | (((mino_shape&  240)/  16) * pow_of_2[7-mino_x]);
+        let f[mino_y+3] = f[mino_y+3] | (((mino_shape&   15))      * pow_of_2[7-mino_x]);
+
+        // Erase line
+        let y = FIELD_HEIGHT - 2;
+        while (0 < y) {
+            if (f[y] = 4095) {
+                var int y2;
+                let y2 = y;
+                while (0 < y2) {
+                    let f[y2] = f[y2-1] | 2049;
+                    let y2 = y2 - 1;
+                }
+            } else {
+                let y = y - 1;
+            }
+        }
+
+        // Judge GameOver
+        let landed = judge();
+
+        // Initialize mino
+        do init_mino();
+
+        return landed;
+    }
+
+    function void gamerun() {
+        var int count;
+        var char key;
+        let count = 0;
+        let key = 0;
+
+        while (true) {
+            // waits for a key to be pressed.
+            while (key = 0) {
+                do draw();
+                let key = Keyboard.keyPressed();
+                if (count = 50) {
+                    let count = 0;
+                    if (~is_collision(mino_x, mino_y+1, mino_shape)) {
+                        // Fall
+                        let mino_y = mino_y + 1;
+                    } else {
+                        if (~landing()) {
+                            return;
+                        }
+                    }
+                }
+                do Sys.wait(10);
+                let count = count + 1;
+            }
+
+            // Left key
+            if (key = 130) {
+                // Move left
+                if (~is_collision(mino_x-1, mino_y, mino_shape)) {
+                    let mino_x = mino_x - 1;
+                }
+            } else {
+                // Right key
+	            if (key = 132) {
+                    // Move right
+                    if (~is_collision(mino_x+1, mino_y, mino_shape)) {
+                        let mino_x = mino_x + 1;
+                    }
+                } else {
+                    // Up key
+                    if (key = 131) {
+                        // Quick drop
+                        while (~is_collision(mino_x, mino_y+1, mino_shape)) {
+                            let mino_y = mino_y + 1;
+                        }
+                        let count = 0;
+                        if (~landing()) {
+                            return;
+                        }
+                    } else {
+                        // Down key
+                        if (key = 133) {
+                            // Move down
+                            if (~is_collision(mino_x, mino_y+1, mino_shape)) {
+                                let mino_y = mino_y + 1;
+                            } else {
+                                let count = 0;
+                                if (~landing()) {
+                                    return;
+                                }
+                            }
+                        } else {
+                            // Space key
+                            if (key = 32) {
+                                // Rotation
+                                var int shape_buf;
+                                let shape_buf = rotaion();
+                                if (~is_collision(mino_x, mino_y, shape_buf)) {
+                                    let mino_shape = shape_buf;
+                                }
+                            }
+                        }
+                    }
+		        }
+            }
+
+            // Waits for the key to be released.
+            while (~(key = 0)) {
+                do draw();
+                let key = Keyboard.keyPressed();
+                if (count = 50) {
+                    let count = 0;
+                    if (~is_collision(mino_x, mino_y+1, mino_shape)) {
+                        // Fall
+                        let mino_y = mino_y + 1;
+                    } else {
+                        if (~landing()) {
+                            return;
+                        }
+                    }
+                }
+                do Sys.wait(10);
+                let count = count + 1;
+            }
+        }
+
+        return;
+    }
+}
+

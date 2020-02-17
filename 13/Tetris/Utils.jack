@@ -1,0 +1,65 @@
+
+class Utils {
+
+    static int a, b, c, r; // for rand()
+
+    /** Copies count bytes from src to dest. */
+    function void memcpy(Array dst, Array src, int size) {
+        var int i;
+        let i = 0;
+
+        while (i < size) {
+            let dst[i] = src[i];
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    function void srand(int seed) {
+        let a = 19937;
+        let b = 12345;
+        let c = 32767 + 32767;
+        let r = seed;
+        return;
+    }
+
+    function int rand() {
+        let r = ((a*r) + b) & c;
+        return (r+1) / c;
+    }
+
+    function void test_rand(int range) {
+        var int i;
+        var Array ary;
+        let i = 0;
+        let ary = Array.new(range);
+
+        do Output.moveCursor(0, 0);
+        do Output.printString("processing...");
+        while (i < 10000) {
+            var int r, j;
+            let r = Math.abs(Utils.rand());
+            let j = r - (range * (r / range));  // expect 0~range
+            let ary[j] = ary[j] + 1;
+            let i = i + 1;
+        }
+
+        do Output.moveCursor(0, 0);
+        do Output.printString("Expected value: ");
+        do Output.printInt(10000 / range);
+        do Output.println();
+        let i = 0;
+        while (i < range) {
+            do Output.printInt(ary[i]);
+            do Output.printString(" = [");
+            do Output.printInt(i);
+            do Output.printString("]");
+            do Output.println();
+            let i = i + 1;
+        }
+
+        return;
+    }
+}
+
